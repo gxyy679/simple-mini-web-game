@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PIXELVERSE — Interactive Learning World</title>
+<meta name="description" content="PIXELVERSE: an interactive pixel-art educational platform. Explore learning zones, complete challenges, and level up." />
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Floating pixel particles layer -->
+<div id="particle-field" aria-hidden="true"></div>
+
+<!-- ============ NAV ============ -->
+<header class="topbar">
+  <button class="brand" data-nav="home" aria-label="Go to PIXELVERSE home">
+    <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" fill="var(--pixel-green)"/>
+      <rect x="5" y="5" width="4" height="4" fill="var(--ink)"/>
+      <rect x="15" y="5" width="4" height="4" fill="var(--ink)"/>
+      <rect x="5" y="15" width="14" height="4" fill="var(--ink)"/>
+    </svg>
+    <span class="brand-word">PIXELVERSE</span>
+  </button>
+
+  <nav class="main-nav" aria-label="Primary">
+    <button class="nav-link" data-nav="home">Home</button>
+    <button class="nav-link" data-nav="zones">Zones</button>
+    <button class="nav-link" data-nav="achievements">Achievements</button>
+  </nav>
+
+  <div class="topbar-right">
+    <div class="xp-pill" id="xp-pill" title="Your level and experience">
+      <svg class="xp-bolt" viewBox="0 0 24 24" aria-hidden="true"><rect x="13" y="2" width="4" height="8" fill="var(--neon-mint)"/><rect x="9" y="10" width="4" height="4" fill="var(--neon-mint)"/><rect x="7" y="14" width="10" height="4" fill="var(--neon-mint)"/><rect x="11" y="18" width="4" height="4" fill="var(--neon-mint)"/></svg>
+      <span id="xp-pill-text">LV.1</span>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark or light mode" aria-pressed="false">
+      <svg id="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><rect x="10" y="2" width="4" height="4" fill="currentColor"/><rect x="10" y="18" width="4" height="4" fill="currentColor"/><rect x="2" y="10" width="4" height="4" fill="currentColor"/><rect x="18" y="10" width="4" height="4" fill="currentColor"/><rect x="8" y="8" width="8" height="8" fill="currentColor"/></svg>
+      <svg id="icon-moon" viewBox="0 0 24 24" aria-hidden="true" hidden><rect x="10" y="3" width="8" height="4" fill="currentColor"/><rect x="7" y="7" width="4" height="10" fill="currentColor"/><rect x="11" y="7" width="8" height="4" fill="currentColor"/><rect x="11" y="13" width="8" height="4" fill="currentColor"/><rect x="7" y="17" width="10" height="3" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ HOME / HERO ============ -->
+  <section class="view active" id="view-home" data-view="home">
+    <div class="hero">
+      <svg class="hero-scape" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <rect x="0" y="0" width="1200" height="400" fill="url(#skyGrad)"/>
+        <defs>
+          <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--midnight)"/>
+            <stop offset="100%" stop-color="var(--deep-green)"/>
+          </linearGradient>
+        </defs>
+        <g class="layer-far" id="layer-far">
+          <polygon points="0,260 80,180 160,230 260,150 360,220 460,160 560,230 660,170 760,240 860,160 960,230 1060,180 1140,240 1200,210 1200,400 0,400" fill="var(--deep-green)"/>
+        </g>
+        <g class="layer-mid" id="layer-mid">
+          <polygon points="0,320 100,260 220,300 320,240 420,300 540,250 640,310 760,260 860,320 980,270 1100,310 1200,280 1200,400 0,400" fill="var(--dark-card)"/>
+        </g>
+        <g class="layer-trees" id="layer-trees" fill="var(--midnight)"></g>
+        <g class="layer-ground">
+          <rect x="0" y="360" width="1200" height="40" fill="var(--midnight)"/>
+          <rect x="0" y="356" width="1200" height="6" fill="var(--pixel-green)" opacity="0.35"/>
+        </g>
+        <g class="layer-clouds" id="layer-clouds" fill="var(--muted-gray)" opacity="0.5"></g>
+      </svg>
+
+      <div class="hero-content">
+        <div class="ascii-panel" id="ascii-boot" aria-live="polite">
+          <pre id="ascii-boot-text"></pre>
+        </div>
+
+        <h1 class="hero-title">EXPLORE. LEARN.<br>LEVEL UP.</h1>
+        <p class="hero-sub">A pixel-art learning world where every lesson is a place to visit. Four zones, twelve challenges, one save file — yours.</p>
+
+        <div class="hero-actions">
+          <button class="btn btn-primary" data-nav="zones">
+            <span>ENTER PIXELVERSE</span>
+          </button>
+          <button class="btn btn-ghost" data-nav="achievements">View progress</button>
+        </div>
+
+        <div class="hero-stats" id="hero-stats"></div>
+      </div>
+    </div>
+
+    <div class="ascii-divider" aria-hidden="true">▓▒░ ░▒▓ ▓▒░ ░▒▓ ▓▒░ ░▒▓ ▓▒░ ░▒▓ ▓▒░ ░▒▓ ▓▒░ ░▒▓</div>
+
+    <section class="intro-grid">
+      <div class="intro-card">
+        <h2 class="mono-label">// 01 WHAT IS THIS</h2>
+        <p>PIXELVERSE turns four core computing topics into explorable zones. Read short lessons, then prove what you've learned with quizzes, flashcards, drag-and-drop challenges, and terminal mini-games.</p>
+      </div>
+      <div class="intro-card">
+        <h2 class="mono-label">// 02 HOW PROGRESS WORKS</h2>
+        <p>Every completed lesson earns XP. XP fills your level bar and unlocks badges. Everything is saved to this browser automatically — no account, no server, just your local save file.</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============ ZONES (WORLD MAP) ============ -->
+  <section class="view" id="view-zones" data-view="zones">
+    <div class="section-head">
+      <h1 class="page-title">THE WORLD MAP</h1>
+      <p class="page-sub">Four zones. Pick one to start exploring.</p>
+    </div>
+    <div class="zones-grid" id="zones-grid"></div>
+  </section>
+
+  <!-- ============ ZONE DETAIL ============ -->
+  <section class="view" id="view-zone" data-view="zone">
+    <button class="btn btn-back" data-nav="zones">&lt; Back to world map</button>
+    <div id="zone-detail-content"></div>
+  </section>
+
+  <!-- ============ LESSON ============ -->
+  <section class="view" id="view-lesson" data-view="lesson">
+    <button class="btn btn-back" id="lesson-back-btn">&lt; Back to zone</button>
+    <div id="lesson-content"></div>
+  </section>
+
+  <!-- ============ ACHIEVEMENTS ============ -->
+  <section class="view" id="view-achievements" data-view="achievements">
+    <div class="section-head">
+      <h1 class="page-title">YOUR SAVE FILE</h1>
+      <p class="page-sub">Level, XP, and every badge you've earned.</p>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-level" id="profile-level">LV.1</div>
+      <div class="profile-xp-wrap">
+        <div class="xp-bar-track"><div class="xp-bar-fill" id="profile-xp-fill"></div></div>
+        <div class="profile-xp-text" id="profile-xp-text">0 / 150 XP</div>
+      </div>
+    </div>
+
+    <h2 class="mono-label section-label">// BADGES</h2>
+    <div class="badges-grid" id="badges-grid"></div>
+
+    <h2 class="mono-label section-label">// SYSTEM</h2>
+    <button class="btn btn-ghost btn-danger" id="reset-progress-btn">Reset save file</button>
+
+    <pre class="ascii-footer-art" aria-hidden="true">░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  PIXELVERSE © 2026 · BUILT WITH HTML, CSS &amp; JS
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░</pre>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p class="mono-label">PIXELVERSE_v1.0 — NO BACKEND · NO TRACKING · JUST LOCALSTORAGE</p>
+</footer>
+
+<div id="toast-container" aria-live="assertive"></div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
