@@ -352,7 +352,7 @@ let currentLessonId = null;
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
   document.querySelectorAll('.nav-link').forEach(b => b.classList.toggle('is-active', b.dataset.nav === name));
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('main').scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'zones') renderZonesGrid();
   if (name === 'achievements') renderAchievements();
   if (name === 'home') renderHeroStats();
