@@ -326,17 +326,19 @@ function checkBadges(progress) {
    4. THEME
    --------------------------------------------------------- */
 function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem(THEME_KEY, theme);
-  const sun = document.getElementById('icon-sun');
-  const moon = document.getElementById('icon-moon');
-  const btn = document.getElementById('theme-toggle');
-  if (theme === 'light') { sun.hidden = false; moon.hidden = true; btn.setAttribute('aria-pressed', 'false'); }
-  else { sun.hidden = true; moon.hidden = false; btn.setAttribute('aria-pressed', 'true'); }
+  const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', normalizedTheme);
+  localStorage.setItem(THEME_KEY, normalizedTheme);
+  const toggle = document.getElementById('themeToggle');
+  if (toggle) {
+    const isDark = normalizedTheme === 'dark';
+    toggle.checked = isDark;
+    toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  }
 }
 function initTheme() {
   const saved = localStorage.getItem(THEME_KEY);
-  if (saved) { setTheme(saved); return; }
+  if (saved === 'dark' || saved === 'light') { setTheme(saved); return; }
   const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
   setTheme(prefersLight ? 'light' : 'dark');
 }
@@ -486,9 +488,7 @@ function renderActivityDone(container, lesson, message, result) {
     showView('zone');
   });
   showToast(`+${result.gained} XP — ${lesson.title} complete`, 'xp');
-  (result.newBadges || []).forEach((b, i) => {
-    setTimeout(() => showToast(`Achievement unlocked: ${b.title}`, 'badge'), 500 + i * 900);
-  });
+  (result.newBadges || []).forEach(b => showToast(`Achievement unlocked: ${b.title}`, 'badge'));
 }
 
 function renderAchievements() {
@@ -558,7 +558,7 @@ function initQuiz(container, lesson) {
       btn.classList.add('is-wrong');
       allBtns.forEach(b => { if (b.textContent === q.answer) b.classList.add('is-correct'); });
     }
-    setTimeout(() => { idx++; if (idx < qs.length) renderQuestion(); else finish(); }, 850);
+    setTimeout(() => { idx++; if (idx < qs.length) renderQuestion(); else finish(); }, 300);
   }
 
   function finish() {
@@ -703,7 +703,7 @@ function initTerminal(container, lesson) {
       if (ok) {
         log.textContent += `\n> ${val}\nOK.`;
         input.disabled = true;
-        setTimeout(() => { idx++; if (idx < lesson.terminal.length) render(); else finish(); }, 650);
+        setTimeout(() => { idx++; if (idx < lesson.terminal.length) render(); else finish(); }, 250);
       } else {
         log.textContent += `\n> ${val || '(empty)'}\nERROR: not recognized. Try again.`;
         input.value = '';
@@ -809,17 +809,50 @@ function buildHeroScape() {
 
 function initParallax() {
   const hero = document.querySelector('.hero');
-  if (!hero) return;
+  if (!hero || getComputedStyle(hero.querySelector('.hero-scape')).display === 'none') return;
   const far = document.getElementById('layer-far');
   const mid = document.getElementById('layer-mid');
   const trees = document.getElementById('layer-trees');
-  hero.addEventListener('mousemove', e => {
-    const rect = hero.getBoundingClientRect();
-    const dx = (e.clientX - rect.left - rect.width / 2) / rect.width;
-    far.style.transform = `translateX(${dx * -6}px)`;
-    mid.style.transform = `translateX(${dx * -12}px)`;
-    trees.style.transform = `translateX(${dx * -20}px)`;
-  });
+  let pointerX = 0;
+  let framePending = false;
+  hero.addEventListener('pointermove', e => {
+    pointerX = e.clientX;
+    if (framePending) return;
+    framePending = true;
+    requestAnimationFrame(() => {
+      const rect = hero.getBoundingClientRect();
+      const dx = (pointerX - rect.left - rect.width / 2) / rect.width;
+      far.style.transform = `translateX(${dx * -6}px)`;
+      mid.style.transform = `translateX(${dx * -12}px)`;
+      trees.style.transform = `translateX(${dx * -20}px)`;
+      framePending = false;
+    });
+  }, { passive: true });
+  hero.addEventListener('pointerleave', () => {
+    far.style.transform = '';
+    mid.style.transform = '';
+    trees.style.transform = '';
+  }, { passive: true });
+}
+
+function initAmbientMotion() {
+  const video = document.querySelector('.background-video');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const playVideo = () => {
+    if (reduceMotion.matches || document.hidden) return;
+    video.play().catch(error => {
+      console.warn('Ambient background video could not start:', error);
+    });
+  };
+  const syncMotion = () => {
+    document.body.classList.toggle('is-page-hidden', document.hidden);
+    if (document.hidden || reduceMotion.matches) video.pause();
+    else playVideo();
+  };
+
+  reduceMotion.addEventListener('change', syncMotion);
+  document.addEventListener('visibilitychange', syncMotion, { passive: true });
+  syncMotion();
 }
 
 /* ---------------------------------------------------------
@@ -827,9 +860,8 @@ function initParallax() {
    --------------------------------------------------------- */
 function init() {
   initTheme();
-  document.getElementById('theme-toggle').addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme');
-    setTheme(current === 'light' ? 'dark' : 'light');
+  document.getElementById('themeToggle').addEventListener('change', event => {
+    setTheme(event.currentTarget.checked ? 'dark' : 'light');
   });
 
   document.querySelectorAll('[data-nav]').forEach(btn => {
@@ -845,10 +877,13 @@ function init() {
     }
   });
 
-  buildHeroScape();
-  buildParticles();
-  initParallax();
-  typeAsciiBoot();
+  if (getComputedStyle(document.querySelector('.hero-scape')).display !== 'none') {
+    buildHeroScape();
+    initParallax();
+  }
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) buildParticles();
+  if (getComputedStyle(document.querySelector('.ascii-panel')).display !== 'none') typeAsciiBoot();
+  initAmbientMotion();
 
   renderHeroStats();
   renderZonesGrid();
