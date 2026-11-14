@@ -1840,3 +1840,43 @@ main {
 #view-zone .lesson-list {
   flex: 1 0 auto;
 }
+
+/* Keep the XP indicator aligned with the active Pixelverse theme palette. */
+.xp-pill {
+  --xp-pill-background: var(--bg);
+  --xp-pill-foreground: var(--text);
+  --xp-pill-outline: var(--accent);
+  --xp-pill-icon: var(--accent);
+  --xp-pill-hover-background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+  align-items: center;
+  padding: 0.5rem 0.8rem;
+  border-width: 2px;
+  background-color: var(--xp-pill-background);
+  color: var(--xp-pill-foreground);
+  border-color: var(--xp-pill-outline);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: 0.1em;
+  border-radius: 0;
+  transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease;
+}
+
+:root[data-theme="light"] .xp-pill {
+  --xp-pill-background: var(--bg-elevated);
+  --xp-pill-outline: color-mix(in srgb, var(--ink) 75%, var(--accent));
+  --xp-pill-icon: var(--xp-pill-outline);
+  --xp-pill-hover-background: color-mix(in srgb, var(--accent) 12%, var(--bg-elevated));
+}
+
+.xp-pill .xp-bolt rect {
+  fill: var(--xp-pill-icon);
+  transition: fill 220ms ease;
+}
+
+.xp-pill:hover,
+.xp-pill:active {
+  background-color: var(--xp-pill-hover-background);
+  color: var(--xp-pill-foreground);
+  border-color: var(--xp-pill-outline);
+}
