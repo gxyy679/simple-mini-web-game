@@ -270,6 +270,8 @@ function renderIcon(name, size) {
    --------------------------------------------------------- */
 const STORAGE_KEY = 'pixelverse_progress_v1';
 const THEME_KEY = 'pixelverse_theme_v1';
+let ambientMotionInitialized = false;
+let ambientVideos = [];
 
 function defaultProgress() {
   return { xp: 0, completedLessons: [], badges: [], quizScores: {} };
@@ -280,10 +282,14 @@ function loadProgress() {
     if (!raw) return defaultProgress();
     const parsed = JSON.parse(raw);
     return Object.assign(defaultProgress(), parsed);
-  } catch (e) { return defaultProgress(); }
+  } catch (e) {
+    console.warn('Saved progress could not be read; using a temporary empty save.', e);
+    return defaultProgress();
+  }
 }
 function saveProgress(p) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch (e) { /* storage unavailable — fail silently */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
+  catch (e) { console.warn('Progress could not be saved in this browser.', e); }
 }
 function totalLessons() { return ZONES.reduce((n, z) => n + z.lessons.length, 0); }
 function levelFromXP(xp) { return Math.floor(xp / 150) + 1; }
@@ -325,22 +331,30 @@ function checkBadges(progress) {
 /* ---------------------------------------------------------
    4. THEME
    --------------------------------------------------------- */
-function setTheme(theme) {
+function setTheme(theme, persist = true) {
   const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', normalizedTheme);
-  localStorage.setItem(THEME_KEY, normalizedTheme);
+  const root = document.documentElement;
+  const themeChanged = root.getAttribute('data-theme') !== normalizedTheme;
+  if (themeChanged) root.setAttribute('data-theme', normalizedTheme);
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, normalizedTheme); }
+    catch (error) { console.warn('Theme preference could not be saved in this browser.', error); }
+  }
   const toggle = document.getElementById('themeToggle');
   if (toggle) {
     const isDark = normalizedTheme === 'dark';
     toggle.checked = isDark;
     toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
   }
+  if (themeChanged && ambientMotionInitialized) syncAmbientVideo();
 }
 function initTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  if (saved === 'dark' || saved === 'light') { setTheme(saved); return; }
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); }
+  catch (error) { console.warn('Saved theme could not be read; using the system preference.', error); }
+  if (saved === 'dark' || saved === 'light') { setTheme(saved, false); return; }
   const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-  setTheme(prefersLight ? 'light' : 'dark');
+  setTheme(prefersLight ? 'light' : 'dark', false);
 }
 
 /* ---------------------------------------------------------
@@ -351,7 +365,12 @@ let currentLessonId = null;
 
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
-  document.querySelectorAll('.nav-link').forEach(b => b.classList.toggle('is-active', b.dataset.nav === name));
+  document.querySelectorAll('.nav-link[data-nav]').forEach(button => {
+    const active = button.dataset.nav === name;
+    button.classList.toggle('is-active', active);
+    if (active) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
   document.getElementById('main').scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'zones') renderZonesGrid();
   if (name === 'achievements') renderAchievements();
@@ -765,9 +784,15 @@ function typeAsciiBoot() {
   tick();
 }
 
+/* Keep the existing particle effect lighter on small or constrained devices. */
 function buildParticles() {
   const field = document.getElementById('particle-field');
-  const count = window.innerWidth < 600 ? 10 : 20;
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const constrained = navigator.deviceMemory <= 4
+    || navigator.hardwareConcurrency <= 4
+    || Boolean(connection && connection.saveData);
+  const count = window.innerWidth < 600 ? (constrained ? 4 : 7) : (constrained ? 10 : 20);
+  if (field.children.length) return;
   for (let i = 0; i < count; i++) {
     const p = document.createElement('div');
     p.className = 'particle';
@@ -777,6 +802,38 @@ function buildParticles() {
     p.style.opacity = (0.25 + Math.random() * 0.45).toFixed(2);
     field.appendChild(p);
   }
+}
+
+/* Pause CSS particle motion when the hero is outside the scrollport or the tab is hidden. */
+function initParticleMotion() {
+  const field = document.getElementById('particle-field');
+  const hero = document.querySelector('.hero');
+  if (!field || !hero) return () => {};
+  const main = document.getElementById('main');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let heroVisible = false;
+  const syncMotion = () => {
+    if (!reduceMotion.matches && !field.children.length) buildParticles();
+    field.classList.toggle('imx-particles-paused', document.hidden || !heroVisible || reduceMotion.matches);
+  };
+  const observer = 'IntersectionObserver' in window
+    ? new IntersectionObserver(entries => {
+      heroVisible = entries.some(entry => entry.isIntersecting);
+      syncMotion();
+    }, { root: main, threshold: 0 })
+    : null;
+  if (observer) observer.observe(hero);
+  const onVisibilityChange = () => syncMotion();
+  const onMotionChange = () => syncMotion();
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  reduceMotion.addEventListener('change', onMotionChange);
+  if (!observer) heroVisible = true;
+  syncMotion();
+  return () => {
+    if (observer) observer.disconnect();
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    reduceMotion.removeEventListener('change', onMotionChange);
+  };
 }
 
 function buildHeroScape() {
@@ -835,19 +892,68 @@ function initParallax() {
   }, { passive: true });
 }
 
-function initAmbientMotion() {
-  const video = document.querySelector('.background-video');
+function syncAmbientVideo() {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const playVideo = () => {
-    if (reduceMotion.matches || document.hidden) return;
-    video.play().catch(error => {
-      console.warn('Ambient background video could not start:', error);
+  if (document.hidden || reduceMotion.matches) {
+    ambientVideos.forEach(video => video.pause());
+    return;
+  }
+
+  const theme = document.documentElement.getAttribute('data-theme');
+  const activeVideo = ambientVideos.find(video => video.dataset.themeVideo === theme);
+  if (!activeVideo) return;
+
+  ambientVideos.forEach(video => {
+    if (video !== activeVideo) {
+      video.pause();
+      video.preload = 'none';
+    }
+  });
+
+  activeVideo.preload = 'auto';
+  if (activeVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    revealAmbientVideo(activeVideo);
+  }
+  if (activeVideo.paused) {
+    activeVideo.play().catch(error => {
+      if (error.name !== 'AbortError') {
+        console.warn('Ambient background video could not start:', error);
+      }
     });
-  };
+  }
+}
+
+function revealAmbientVideo(video) {
+  if (
+    document.hidden ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    document.documentElement.getAttribute('data-theme') !== video.dataset.themeVideo
+  ) return;
+
+  video.classList.add('is-visible');
+  ambientVideos.forEach(otherVideo => {
+    if (otherVideo !== video) otherVideo.classList.remove('is-visible');
+  });
+}
+
+function initAmbientMotion() {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  ambientVideos = Array.from(document.querySelectorAll('.background-video'));
+  ambientVideos.forEach(video => {
+    video.preload = 'none';
+    video.addEventListener('loadeddata', () => revealAmbientVideo(video));
+    video.addEventListener('playing', () => revealAmbientVideo(video));
+    video.addEventListener('error', () => {
+      if (document.documentElement.getAttribute('data-theme') === video.dataset.themeVideo) {
+        console.warn(`Ambient ${video.dataset.themeVideo} background video could not load.`);
+      }
+    });
+  });
+  ambientMotionInitialized = true;
+
   const syncMotion = () => {
     document.body.classList.toggle('is-page-hidden', document.hidden);
-    if (document.hidden || reduceMotion.matches) video.pause();
-    else playVideo();
+    syncAmbientVideo();
   };
 
   reduceMotion.addEventListener('change', syncMotion);
@@ -855,11 +961,425 @@ function initAmbientMotion() {
   syncMotion();
 }
 
+function initScrollIndicator() {
+  const main = document.getElementById('main');
+  let hideTimer = 0;
+  const updateIndicator = () => {
+    const scrollableHeight = main.scrollHeight - main.clientHeight;
+    if (scrollableHeight <= 0) return;
+
+    const thumbHeight = Math.max(24, main.clientHeight * main.clientHeight / main.scrollHeight);
+    const thumbRange = main.clientHeight - thumbHeight;
+    const scrollRatio = main.scrollTop / scrollableHeight;
+    const mainTop = main.getBoundingClientRect().top;
+    main.style.setProperty('--scroll-indicator-top', `${mainTop + thumbRange * scrollRatio}px`);
+    main.style.setProperty('--scroll-indicator-height', `${thumbHeight}px`);
+  };
+  const onScroll = () => {
+    updateIndicator();
+    main.classList.add('is-scrolling');
+    window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => {
+      main.classList.remove('is-scrolling');
+      hideTimer = 0;
+    }, 700);
+  };
+  const onResize = () => {
+    if (main.classList.contains('is-scrolling')) updateIndicator();
+  };
+  main.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onResize, { passive: true });
+
+  return () => {
+    main.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onResize);
+    window.clearTimeout(hideTimer);
+    main.classList.remove('is-scrolling');
+    main.style.removeProperty('--scroll-indicator-top');
+    main.style.removeProperty('--scroll-indicator-height');
+  };
+}
+
+let heroTitleAnimationStarted = false;
+let heroTitleAnimationPending = false;
+let heroTitleAnimationFrame = 0;
+let heroTitleAnimationCleanup = null;
+
+function finishHeroTitleAnimation() {
+  if (heroTitleAnimationFrame) {
+    window.cancelAnimationFrame(heroTitleAnimationFrame);
+    heroTitleAnimationFrame = 0;
+  }
+  if (heroTitleAnimationCleanup) {
+    heroTitleAnimationCleanup();
+    heroTitleAnimationCleanup = null;
+  }
+
+  const title = document.querySelector('.hero-title');
+  title?.querySelector('.hero-title-pixels')?.remove();
+  title?.classList.remove('is-assembling');
+  if (title) {
+    delete title.dataset.heroAnimationPhase;
+    delete title.dataset.heroParticleCount;
+  }
+}
+
+function initHeroTitleAnimation() {
+  const title = document.querySelector('.hero-title');
+  const lines = title ? Array.from(title.querySelectorAll('.hero-title-line')) : [];
+  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (!title || !lines.length || motionPreference.matches || heroTitleAnimationStarted || heroTitleAnimationPending) return;
+
+  heroTitleAnimationPending = true;
+  const begin = async () => {
+    try {
+      await document.fonts.ready;
+    } catch (error) {
+      heroTitleAnimationPending = false;
+      console.warn('Hero title animation skipped because document fonts did not finish loading.', error);
+      return;
+    }
+    if (motionPreference.matches || !title.isConnected || heroTitleAnimationStarted) {
+      heroTitleAnimationPending = false;
+      return;
+    }
+
+    const titleStyle = getComputedStyle(title);
+    const fontFamily = titleStyle.fontFamily.split(',')[0].trim().replace(/^['"]|['"]$/g, '');
+    const fontSize = Number.parseFloat(titleStyle.fontSize) || 16;
+    const fontRequest = `${titleStyle.fontWeight} ${fontSize}px "${fontFamily}"`;
+    const sampleText = lines.map(line => line.textContent).join(' ');
+    let loadedFaces;
+    try {
+      loadedFaces = await document.fonts.load(fontRequest, sampleText);
+    } catch (error) {
+      heroTitleAnimationPending = false;
+      console.warn(`Hero title animation skipped because "${fontFamily}" could not be loaded.`, error);
+      return;
+    }
+    const requiredFontLoaded = loadedFaces.some(face =>
+      face.family.replace(/^['"]|['"]$/g, '').toLowerCase() === fontFamily.toLowerCase() &&
+      face.status === 'loaded',
+    );
+    if (!requiredFontLoaded || !document.fonts.check(fontRequest, sampleText)) {
+      heroTitleAnimationPending = false;
+      console.warn(`Hero title animation skipped because the "${fontFamily}" font is unavailable.`);
+      return;
+    }
+
+    if (motionPreference.matches || !title.isConnected || heroTitleAnimationStarted) {
+      heroTitleAnimationPending = false;
+      return;
+    }
+
+    const bounds = title.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) {
+      heroTitleAnimationPending = false;
+      return;
+    }
+
+    heroTitleAnimationStarted = true;
+    heroTitleAnimationPending = false;
+    const paddingX = 180;
+    const paddingY = 180;
+    const dropDistance = Math.max(160, bounds.bottom + 24);
+    const width = Math.ceil(title.clientWidth + paddingX * 2);
+    const height = Math.ceil(title.clientHeight + dropDistance + paddingY * 2);
+    const ratio = Math.min(2, window.devicePixelRatio || 1);
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) {
+      heroTitleAnimationStarted = false;
+      return;
+    }
+
+    canvas.className = 'hero-title-pixels';
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.style.left = `${-paddingX}px`;
+    canvas.style.width = `${width}px`;
+    canvas.style.setProperty('--hero-title-canvas-top', `${-dropDistance - paddingY}px`);
+    canvas.style.setProperty('--hero-title-canvas-height', `${height}px`);
+    canvas.width = Math.ceil(width * ratio);
+    canvas.height = Math.ceil(height * ratio);
+    context.scale(ratio, ratio);
+
+    const texture = document.createElement('canvas');
+    texture.width = canvas.width;
+    texture.height = canvas.height;
+    const textureContext = texture.getContext('2d', { willReadFrequently: true });
+    if (!textureContext) {
+      heroTitleAnimationStarted = false;
+      return;
+    }
+    textureContext.scale(ratio, ratio);
+
+    const lineDetails = lines.map((line, lineIndex) => {
+      const rect = line.getBoundingClientRect();
+      const style = getComputedStyle(line);
+      const fontSize = Number.parseFloat(style.fontSize) || 16;
+      const lineHeight = Number.parseFloat(style.lineHeight) || fontSize;
+      const leading = Math.max(0, (lineHeight - fontSize) / 2);
+      return {
+        line,
+        lineIndex,
+        style,
+        width: rect.width,
+        x: paddingX + rect.left - bounds.left,
+        y: dropDistance + paddingY + rect.top - bounds.top + leading,
+      };
+    });
+    const titleColor = getComputedStyle(title).color;
+    const shadowPattern = /((?:rgba?\([^)]*\)|#[\da-f]+|[a-z]+)\s+)?(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px(?:\s+((?:rgba?\([^)]*\)|#[\da-f]+|[a-z]+)))?/gi;
+    const textShadows = Array.from(titleStyle.textShadow.matchAll(shadowPattern), match => ({
+      color: match[1] || match[5] || 'transparent',
+      x: Number(match[2]),
+      y: Number(match[3]),
+      blur: Number(match[4]),
+    }));
+    const drawLine = (target, item, x = item.x, y = item.y, color = titleColor, shadow = null) => {
+      target.save();
+      target.font = item.style.font;
+      target.textBaseline = 'top';
+      target.textAlign = 'left';
+      if ('letterSpacing' in target) target.letterSpacing = item.style.letterSpacing;
+      const measuredWidth = target.measureText(item.line.textContent).width;
+      const scaleX = measuredWidth > 0 ? item.width / measuredWidth : 1;
+      target.translate(x, y);
+      target.scale(scaleX, 1);
+      target.shadowColor = 'transparent';
+      target.shadowBlur = 0;
+      target.shadowOffsetX = 0;
+      target.shadowOffsetY = 0;
+      if (shadow) {
+        target.shadowColor = shadow.color;
+        target.shadowBlur = shadow.blur;
+        target.shadowOffsetX = shadow.x / scaleX;
+        target.shadowOffsetY = shadow.y;
+      }
+      target.fillStyle = color;
+      target.fillText(item.line.textContent, 0, 0);
+      target.restore();
+    };
+
+    lineDetails.forEach(item => {
+      textShadows.forEach(shadow => {
+        drawLine(textureContext, item, item.x, item.y, titleColor, shadow);
+      });
+      drawLine(textureContext, item);
+    });
+
+    const texturePixels = textureContext.getImageData(0, 0, texture.width, texture.height).data;
+    const cellSize = 7;
+    const cellPixels = Math.max(1, Math.round(cellSize * ratio));
+    const fragments = [];
+    const actions = title.closest('.hero-content')?.querySelector('.hero-actions');
+    const actionsRect = actions?.getBoundingClientRect();
+    const maxDown = actionsRect
+      ? Math.max(36, Math.min(132, actionsRect.top - bounds.bottom - 12))
+      : 72;
+    for (let py = 0; py < texture.height; py += cellPixels) {
+      for (let px = 0; px < texture.width; px += cellPixels) {
+        const sourceWidth = Math.min(cellPixels, texture.width - px);
+        const sourceHeight = Math.min(cellPixels, texture.height - py);
+        let visible = false;
+        for (let y = py; y < py + sourceHeight && !visible; y += 1) {
+          for (let x = px; x < px + sourceWidth; x += 1) {
+            if (texturePixels[(y * texture.width + x) * 4 + 3] > 24) {
+              visible = true;
+              break;
+            }
+          }
+        }
+        if (!visible) continue;
+
+        const x = px / ratio;
+        const y = py / ratio;
+        const dx = x + sourceWidth / ratio / 2 - (paddingX + title.clientWidth / 2);
+        const dy = y + sourceHeight / ratio / 2 - (dropDistance + paddingY + title.clientHeight / 2);
+        const seed = Math.imul(px + 1, 73856093) ^ Math.imul(py + 1, 19349663);
+        let randomState = seed >>> 0;
+        const random = () => {
+          randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
+          return randomState / 4294967296;
+        };
+        const angle = Math.atan2(dy, dx) + (random() - .5) * .9;
+        const distance = 38 + random() * 122;
+        const scatterTime = .7;
+        const desiredX = Math.cos(angle) * distance;
+        const desiredY = Math.max(-132, Math.min(maxDown, Math.sin(angle) * distance + (random() - .5) * 26));
+        const gravity = 360;
+        const tileCenterY = y + sourceHeight / ratio / 2;
+        const item = lineDetails.reduce((closest, detail) => {
+          const center = detail.y + (Number.parseFloat(detail.style.lineHeight) || 16) / 2;
+          return Math.abs(center - tileCenterY) < Math.abs(
+            closest.y + (Number.parseFloat(closest.style.lineHeight) || 16) / 2 - tileCenterY,
+          )
+            ? detail
+            : closest;
+        }, lineDetails[0]);
+        const lineIndex = item ? item.lineIndex : 0;
+        fragments.push({
+          x,
+          y,
+          width: sourceWidth / ratio,
+          height: sourceHeight / ratio,
+          sourceX: px,
+          sourceY: py,
+          sourceWidth,
+          sourceHeight,
+          lineIndex,
+          velocityX: desiredX / scatterTime,
+          velocityY: (desiredY - .5 * gravity * scatterTime * scatterTime) / scatterTime,
+          gravity,
+          scatterRotation: (random() - .5) * Math.PI * 1.7,
+          scatterAngularVelocity: (random() - .5) * 8,
+          rebuildDelay: random() * .08,
+          glitchSeed: random(),
+          glitchOffset: (random() - .5) * 7,
+        });
+      }
+    }
+
+    if (!fragments.length) {
+      heroTitleAnimationStarted = false;
+      return;
+    }
+
+    title.classList.add('is-assembling');
+    title.dataset.heroParticleCount = String(fragments.length);
+    title.appendChild(canvas);
+    const motionChange = event => {
+      if (event.matches) finishHeroTitleAnimation();
+    };
+    const resize = () => finishHeroTitleAnimation();
+    motionPreference.addEventListener('change', motionChange);
+    window.addEventListener('resize', resize, { once: true });
+    heroTitleAnimationCleanup = () => {
+      motionPreference.removeEventListener('change', motionChange);
+      window.removeEventListener('resize', resize);
+    };
+
+    const drawFragment = (fragment, x, y, rotation, alpha = 1) => {
+      context.save();
+      context.globalAlpha = alpha;
+      context.translate(x + fragment.width / 2, y + fragment.height / 2);
+      context.rotate(rotation);
+      context.drawImage(
+        texture,
+        fragment.sourceX, fragment.sourceY, fragment.sourceWidth, fragment.sourceHeight,
+        -fragment.width / 2, -fragment.height / 2, fragment.width, fragment.height,
+      );
+      context.restore();
+    };
+    const fallDuration = .8;
+    const scatterDuration = .7;
+    const reassembleStart = 1.5;
+    const reassembleEnd = 3.5;
+    const totalDuration = 4;
+    const lineStagger = .55;
+    const lineDuration = .8;
+    const titleCenter = {
+      x: paddingX + title.clientWidth / 2,
+      y: dropDistance + paddingY + title.clientHeight / 2,
+    };
+    let elapsed = 0;
+    let previousFrame = 0;
+    const draw = now => {
+      if (!previousFrame) previousFrame = now;
+      const deltaTime = Math.min(.05, Math.max(0, (now - previousFrame) / 1000));
+      previousFrame = now;
+      elapsed = Math.min(totalDuration, elapsed + deltaTime);
+      context.clearRect(0, 0, width, height);
+
+      if (elapsed < fallDuration) {
+        title.dataset.heroAnimationPhase = 'drop';
+        const progress = elapsed / fallDuration;
+        const y = -dropDistance * (1 - progress * progress);
+        const rotation = -.1 * (1 - progress) + .015 * Math.sin(progress * Math.PI * 2) * (1 - progress);
+        context.save();
+        context.translate(titleCenter.x, titleCenter.y + y);
+        context.rotate(rotation);
+        context.translate(-titleCenter.x, -titleCenter.y);
+        context.drawImage(texture, 0, 0, width, height);
+        context.restore();
+      } else if (elapsed < reassembleStart) {
+        title.dataset.heroAnimationPhase = 'scatter';
+        const flightTime = Math.min(scatterDuration, elapsed - fallDuration);
+        const impactFlash = Math.max(0, 1 - (elapsed - fallDuration) / .16);
+        fragments.forEach(fragment => {
+          const x = fragment.x + fragment.velocityX * flightTime;
+          const y = fragment.y + fragment.velocityY * flightTime +
+            .5 * fragment.gravity * flightTime * flightTime;
+          const rotation = fragment.scatterAngularVelocity * flightTime;
+          drawFragment(fragment, x, y, rotation);
+        });
+        if (impactFlash > 0) {
+          context.save();
+          context.globalCompositeOperation = 'lighter';
+          context.globalAlpha = impactFlash * .2;
+          context.fillStyle = '#79ff6b';
+          context.fillRect(paddingX, dropDistance + paddingY, title.clientWidth, title.clientHeight);
+          context.restore();
+        }
+      } else if (elapsed < reassembleEnd) {
+        title.dataset.heroAnimationPhase = 'reassemble';
+        fragments.forEach(fragment => {
+          const lineStart = reassembleStart + fragment.lineIndex * lineStagger + fragment.rebuildDelay;
+          const progress = Math.max(0, Math.min(1, (elapsed - lineStart) / lineDuration));
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const scatterTime = scatterDuration;
+          const scatteredX = fragment.x + fragment.velocityX * scatterTime;
+          const scatteredY = fragment.y + fragment.velocityY * scatterTime +
+            .5 * fragment.gravity * scatterTime * scatterTime;
+          const scatteredRotation = fragment.scatterAngularVelocity * scatterTime;
+          const x = scatteredX + (fragment.x - scatteredX) * eased;
+          const y = scatteredY + (fragment.y - scatteredY) * eased;
+          const rotation = scatteredRotation * (1 - eased);
+          drawFragment(fragment, x, y, rotation);
+
+          if (
+            progress > 0 &&
+            progress < 1 &&
+            fragment.glitchSeed < .09 &&
+            (elapsed + fragment.glitchSeed * .7) % .84 < .045
+          ) {
+            drawFragment(fragment, x + fragment.glitchOffset, y, rotation, .42);
+          }
+        });
+      } else {
+        title.dataset.heroAnimationPhase = 'final-glitch';
+        context.drawImage(texture, 0, 0, width, height);
+        const finalTime = elapsed - reassembleEnd;
+        const flicker = [0.06, 0.21, 0.37].some(start => finalTime >= start && finalTime < start + .035);
+        if (flicker) {
+          context.save();
+          context.globalCompositeOperation = 'lighter';
+          context.globalAlpha = .23;
+          context.fillStyle = '#79ff6b';
+          context.fillRect(paddingX, dropDistance + paddingY, title.clientWidth, title.clientHeight);
+          context.restore();
+        }
+      }
+
+      if (elapsed < totalDuration) {
+        heroTitleAnimationFrame = window.requestAnimationFrame(draw);
+      } else {
+        heroTitleAnimationFrame = 0;
+        finishHeroTitleAnimation();
+      }
+    };
+    heroTitleAnimationFrame = window.requestAnimationFrame(draw);
+  };
+
+  void begin();
+}
+
 /* ---------------------------------------------------------
    10. INIT
    --------------------------------------------------------- */
 function init() {
   initTheme();
+  const cleanupScrollIndicator = initScrollIndicator();
   document.getElementById('themeToggle').addEventListener('change', event => {
     setTheme(event.currentTarget.checked ? 'dark' : 'light');
   });
@@ -867,10 +1387,16 @@ function init() {
   document.querySelectorAll('[data-nav]').forEach(btn => {
     btn.addEventListener('click', () => showView(btn.dataset.nav));
   });
+  initAmbientMotion();
 
   document.getElementById('reset-progress-btn').addEventListener('click', () => {
     if (window.confirm('Reset your PIXELVERSE save file? This clears all XP, completed lessons, and badges on this device.')) {
-      localStorage.removeItem(STORAGE_KEY);
+      try { localStorage.removeItem(STORAGE_KEY); }
+      catch (error) {
+        console.warn('Progress could not be removed from this browser.', error);
+        showToast('Save file could not be reset.', 'error');
+        return;
+      }
       refreshChrome();
       renderAchievements();
       showToast('Save file reset.', 'info');
@@ -882,13 +1408,22 @@ function init() {
     initParallax();
   }
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) buildParticles();
+  const cleanupParticleMotion = initParticleMotion();
+  const cleanupParticleOnPageHide = event => {
+    if (event.persisted) return;
+    finishHeroTitleAnimation();
+    cleanupParticleMotion();
+    cleanupScrollIndicator();
+    window.removeEventListener('pagehide', cleanupParticleOnPageHide);
+  };
+  window.addEventListener('pagehide', cleanupParticleOnPageHide);
   if (getComputedStyle(document.querySelector('.ascii-panel')).display !== 'none') typeAsciiBoot();
-  initAmbientMotion();
 
   renderHeroStats();
   renderZonesGrid();
   renderAchievements();
   refreshChrome();
+  initHeroTitleAnimation();
 }
 
 document.addEventListener('DOMContentLoaded', init);

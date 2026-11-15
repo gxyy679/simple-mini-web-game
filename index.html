@@ -6,23 +6,56 @@
 <title>PIXELVERSE — Interactive Learning World</title>
 <meta name="description" content="PIXELVERSE: an interactive pixel-art educational platform. Explore learning zones, complete challenges, and level up." />
 <link rel="icon" href="data:,">
+<script>
+  try {
+    const savedTheme = localStorage.getItem('pixelverse_theme_v1');
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      document.documentElement.dataset.theme = savedTheme;
+    } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.dataset.theme = 'light';
+    }
+  } catch (error) {
+    console.warn('Saved theme could not be read before page styling:', error);
+  }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;700&family=Cormorant+Garamond:wght@300;400;500&family=JetBrains+Mono:wght@400;500;700&family=Pixelify+Sans:wght@600;700&display=swap" rel="stylesheet">
+<!-- Keep only weights used by the page and swap immediately to the existing system fallbacks. -->
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;700&family=Cormorant+Garamond:wght@300;400&family=JetBrains+Mono:wght@400;500;700&family=Pixelify+Sans:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/interactivity.css">
 </head>
 <body>
 
-<!-- Ambient grass video background -->
-<video class="background-video" preload="none" muted loop playsinline aria-hidden="true" tabindex="-1">
-  <source src="assets/video/background-vid.mp4" type="video/mp4">
-</video>
+<!-- Theme-specific ambient video backgrounds -->
+<video
+  class="background-video"
+  data-theme-video="dark"
+  src="assets/video/dark-mode-vid-background.mp4"
+  preload="none"
+  muted
+  loop
+  playsinline
+  aria-hidden="true"
+  tabindex="-1"
+></video>
+<video
+  class="background-video"
+  data-theme-video="light"
+  src="assets/video/background-vid.mp4"
+  preload="none"
+  muted
+  loop
+  playsinline
+  aria-hidden="true"
+  tabindex="-1"
+></video>
 
 <!-- Floating pixel particles layer -->
 <div id="particle-field" aria-hidden="true"></div>
 
 <!-- ============ NAV ============ -->
-<header class="topbar">
+<header class="topbar imx-topbar">
   <button class="brand" data-nav="home" aria-label="Go to PIXELVERSE home">
     <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
       <rect x="2" y="2" width="20" height="20" fill="var(--pixel-green)"/>
@@ -33,8 +66,8 @@
     <span class="brand-word">PIXELVERSE</span>
   </button>
 
-  <nav class="main-nav" aria-label="Primary">
-    <button class="nav-link" data-nav="home">Home</button>
+  <nav class="main-nav imx-nav-host" aria-label="Primary">
+    <button class="nav-link is-active" data-nav="home" aria-current="page">Home</button>
     <button class="nav-link" data-nav="zones">Zones</button>
     <button class="nav-link" data-nav="achievements">Achievements</button>
   </nav>
@@ -167,6 +200,155 @@
         <p>Every completed lesson earns XP. XP fills your level bar and unlocks badges. Everything is saved to this browser automatically — no account, no server, just your local save file.</p>
       </div>
     </section>
+
+    <div class="imx-content">
+      <section class="imx-section imx-reveal" id="imx-lab" aria-labelledby="imx-lab-title">
+        <header class="imx-section-head">
+          <p class="imx-eyebrow">INTERACTIVE PLAYGROUND / 01</p>
+          <h2 class="imx-title" id="imx-lab-title">INTERACTIVITY LAB</h2>
+          <p class="imx-intro">Interactivity is a loop of action, response, and feedback.</p>
+        </header>
+        <div class="imx-lab-grid">
+          <article class="imx-card">
+            <h3>Click feedback</h3>
+            <p>Press the button and watch the response.</p>
+            <button class="imx-button imx-ripple-button" id="imx-click-button" type="button">Click me</button>
+            <p class="imx-readout">Clicks: <span id="imx-click-count">0</span></p>
+            <span class="imx-toast" id="imx-click-toast" aria-hidden="true"></span>
+            <span class="imx-visually-hidden" id="imx-click-announcement" role="status" aria-live="polite" aria-atomic="true"></span>
+          </article>
+          <article class="imx-card">
+            <h3>Hover response</h3>
+            <p>Move your pointer over the panel.</p>
+            <div class="imx-tilt-panel" id="imx-tilt-panel" tabindex="0">Your pointer changes my perspective.</div>
+          </article>
+          <article class="imx-card imx-state-card">
+            <h3>State toggle</h3>
+            <p>Toggle the switch to change the scene.</p>
+            <button class="imx-switch" id="imx-lights-switch" type="button" role="switch" aria-checked="false" aria-label="Turn lights on">
+              <span class="imx-switch-track"><span class="imx-switch-thumb"></span></span>
+              <span id="imx-lights-label">Lights off</span>
+            </button>
+          </article>
+          <article class="imx-card">
+            <h3>Animated control</h3>
+            <p>Adjust how quickly the orb travels.</p>
+            <div class="imx-orb-track" aria-hidden="true"><span class="imx-orb"></span></div>
+            <label class="imx-range-label" for="imx-orb-speed">Speed <span id="imx-speed-value">2.0</span>s</label>
+            <input id="imx-orb-speed" type="range" min="0.6" max="4" step="0.2" value="2" aria-label="Orb animation duration">
+          </article>
+        </div>
+      </section>
+
+      <section class="imx-section imx-reveal" id="imx-tools" aria-labelledby="imx-tools-title">
+        <header class="imx-section-head">
+          <p class="imx-eyebrow">MAKING THINGS / 02</p>
+          <h2 class="imx-title" id="imx-tools-title">AUTHORING TOOLS</h2>
+          <p class="imx-intro">Explore tools used to design, animate, and build interactive experiences.</p>
+        </header>
+        <div class="imx-tools-grid">
+          <article class="imx-tool-card">
+            <button class="imx-tool-button" type="button" aria-expanded="false" aria-controls="imx-tool-animate" id="imx-tool-button-animate">
+              <span class="imx-tool-name">Adobe Animate</span><span class="imx-tool-purpose">Create 2D animations and interactive vector content.</span><span class="imx-tool-indicator" aria-hidden="true">+</span>
+            </button>
+            <div class="imx-tool-details" id="imx-tool-animate" aria-labelledby="imx-tool-button-animate" hidden><h4>Features</h4><p>Vector drawing, frame-by-frame animation, timelines, and interactive assets.</p><h4>Used for</h4><p>Web animations, animated characters, banners, and lightweight interactive content.</p></div>
+          </article>
+          <article class="imx-tool-card">
+            <button class="imx-tool-button" type="button" aria-expanded="false" aria-controls="imx-tool-after-effects" id="imx-tool-button-after-effects">
+              <span class="imx-tool-name">Adobe After Effects</span><span class="imx-tool-purpose">Compose motion graphics and visual effects.</span><span class="imx-tool-indicator" aria-hidden="true">+</span>
+            </button>
+            <div class="imx-tool-details" id="imx-tool-after-effects" aria-labelledby="imx-tool-button-after-effects" hidden><h4>Features</h4><p>Layered compositing, keyframes, motion tracking, and visual effects.</p><h4>Used for</h4><p>Title sequences, motion graphics, compositing, and short-form video effects.</p></div>
+          </article>
+          <article class="imx-tool-card">
+            <button class="imx-tool-button" type="button" aria-expanded="false" aria-controls="imx-tool-figma" id="imx-tool-button-figma">
+              <span class="imx-tool-name">Figma</span><span class="imx-tool-purpose">Design and prototype collaborative interfaces.</span><span class="imx-tool-indicator" aria-hidden="true">+</span>
+            </button>
+            <div class="imx-tool-details" id="imx-tool-figma" aria-labelledby="imx-tool-button-figma" hidden><h4>Features</h4><p>Shared design files, components, vector tools, and clickable prototypes.</p><h4>Used for</h4><p>UI/UX design, wireframes, design systems, and team feedback.</p></div>
+          </article>
+          <article class="imx-tool-card">
+            <button class="imx-tool-button" type="button" aria-expanded="false" aria-controls="imx-tool-unity" id="imx-tool-button-unity">
+              <span class="imx-tool-name">Unity</span><span class="imx-tool-purpose">Build and publish real-time 2D and 3D experiences.</span><span class="imx-tool-indicator" aria-hidden="true">+</span>
+            </button>
+            <div class="imx-tool-details" id="imx-tool-unity" aria-labelledby="imx-tool-button-unity" hidden><h4>Features</h4><p>Scene editing, a component system, physics, animation, and multiplatform builds.</p><h4>Used for</h4><p>Games, interactive simulations, and real-time 3D applications.</p></div>
+          </article>
+          <article class="imx-tool-card">
+            <button class="imx-tool-button" type="button" aria-expanded="false" aria-controls="imx-tool-construct" id="imx-tool-button-construct">
+              <span class="imx-tool-name">Construct 3</span><span class="imx-tool-purpose">Create browser games with a visual event system.</span><span class="imx-tool-indicator" aria-hidden="true">+</span>
+            </button>
+            <div class="imx-tool-details" id="imx-tool-construct" aria-labelledby="imx-tool-button-construct" hidden><h4>Features</h4><p>Visual event sheets, behaviors, an asset editor, and browser-based previews.</p><h4>Used for</h4><p>2D games, classroom projects, and quick interactive prototypes.</p></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="imx-section imx-reveal" id="imx-engine" aria-labelledby="imx-engine-title">
+        <header class="imx-section-head">
+          <p class="imx-eyebrow">BUILDING BLOCKS / 03</p>
+          <h2 class="imx-title" id="imx-engine-title">GAME ENGINE BASICS</h2>
+          <p class="imx-intro">Explore the systems that work together inside a game.</p>
+        </header>
+        <div class="imx-tabs" role="tablist" aria-label="Game engine topics">
+          <button class="imx-tab" id="imx-tab-objects" type="button" role="tab" aria-selected="true" aria-controls="imx-tab-panel" tabindex="0">Game objects</button>
+          <button class="imx-tab" id="imx-tab-scenes" type="button" role="tab" aria-selected="false" aria-controls="imx-tab-panel" tabindex="-1">Scenes</button>
+          <button class="imx-tab" id="imx-tab-assets" type="button" role="tab" aria-selected="false" aria-controls="imx-tab-panel" tabindex="-1">Assets</button>
+          <button class="imx-tab" id="imx-tab-physics" type="button" role="tab" aria-selected="false" aria-controls="imx-tab-panel" tabindex="-1">Physics</button>
+          <button class="imx-tab" id="imx-tab-animation" type="button" role="tab" aria-selected="false" aria-controls="imx-tab-panel" tabindex="-1">Animation</button>
+          <button class="imx-tab" id="imx-tab-input" type="button" role="tab" aria-selected="false" aria-controls="imx-tab-panel" tabindex="-1">User input</button>
+          <button class="imx-tab" id="imx-tab-logic" type="button" role="tab" aria-selected="false" aria-controls="imx-tab-panel" tabindex="-1">Game logic</button>
+        </div>
+        <div class="imx-engine-layout">
+          <div class="imx-card imx-tab-panel" id="imx-tab-panel" role="tabpanel" aria-labelledby="imx-tab-objects" tabindex="0">
+            <h3 id="imx-topic-title">Game objects</h3>
+            <p id="imx-topic-copy">Objects are the characters, props, and effects that make up a game world.</p>
+            <p class="imx-try-hint"><strong>Try it:</strong> Choose a shape and click the stage to add an object.</p>
+          </div>
+          <div class="imx-card imx-engine-card">
+            <div class="imx-stage-toolbar">
+              <label class="imx-select-label" for="imx-asset-shape">New object
+                <select id="imx-asset-shape">
+                  <option value="circle">Circle</option><option value="square">Square</option><option value="triangle">Triangle</option>
+                </select>
+              </label>
+              <div class="imx-stage-options">
+                <label><input id="imx-physics" type="checkbox"> Physics</label>
+                <label><input id="imx-animation" type="checkbox"> Animation</label>
+                <label><input id="imx-input" type="checkbox"> Input</label>
+                <label><input id="imx-logic" type="checkbox"> Logic</label>
+              </div>
+            </div>
+            <canvas class="imx-canvas" id="imx-engine-canvas" tabindex="0" role="img" aria-label="Interactive game engine stage. Click to add up to 25 shapes; use arrow keys to move the player when Input is enabled."></canvas>
+            <div class="imx-stage-footer">
+              <p class="imx-readout" id="imx-stage-readout" aria-live="polite">Objects: 0 · Collected: 0</p>
+              <button class="imx-button imx-button-secondary" id="imx-stage-reset" type="button">Reset stage</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="imx-section imx-reveal" id="imx-game" aria-labelledby="imx-game-title">
+        <header class="imx-section-head">
+          <p class="imx-eyebrow">SIGNAL RECOVERY / 04</p>
+          <h2 class="imx-title" id="imx-game-title">CATCH THE SIGNALS</h2>
+          <p class="imx-intro">Move the paddle with your mouse, touch, or arrow keys. Catch blue signals (+1), dodge red glitches (-2).</p>
+        </header>
+        <div class="imx-game-stats">
+          <span>Score: <strong id="imx-game-score">0</strong></span>
+          <span>Time: <strong id="imx-game-time">30</strong>s</span>
+          <span>Best: <strong id="imx-game-best">0</strong></span>
+        </div>
+        <p class="imx-visually-hidden" id="imx-game-announcement" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="imx-game-shell">
+          <canvas class="imx-canvas imx-game-canvas" id="imx-game-canvas" tabindex="0" role="img" aria-label="Catch the Signals game. Move the paddle to catch blue signals and avoid red glitches."></canvas>
+          <div class="imx-game-overlay" id="imx-game-overlay">
+            <div class="imx-game-overlay-card">
+              <h3 id="imx-game-overlay-title">Ready to play?</h3>
+              <p id="imx-game-overlay-copy">Catch blue signals and dodge red glitches. You have 30 seconds.</p>
+              <button class="imx-button" id="imx-game-start" type="button">Start game</button>
+            </div>
+          </div>
+        </div>
+        <p class="imx-game-note">The signals fall faster as the timer runs down.</p>
+      </section>
+    </div>
   </section>
 
   <!-- ============ ZONES (WORLD MAP) ============ -->
@@ -267,5 +449,6 @@
 </svg>
 
 <script src="js/script.js"></script>
+<script src="js/interactivity.js"></script>
 </body>
 </html>
