@@ -1002,17 +1002,12 @@ function initScrollIndicator() {
 
 let heroTitleAnimationStarted = false;
 let heroTitleAnimationPending = false;
-let heroTitleAnimationFrame = 0;
-let heroTitleAnimationCleanup = null;
+let heroTitleInteractionCleanup = null;
 
 function finishHeroTitleAnimation() {
-  if (heroTitleAnimationFrame) {
-    window.cancelAnimationFrame(heroTitleAnimationFrame);
-    heroTitleAnimationFrame = 0;
-  }
-  if (heroTitleAnimationCleanup) {
-    heroTitleAnimationCleanup();
-    heroTitleAnimationCleanup = null;
+  if (heroTitleInteractionCleanup) {
+    heroTitleInteractionCleanup();
+    heroTitleInteractionCleanup = null;
   }
 
   const title = document.querySelector('.hero-title');
@@ -1032,18 +1027,6 @@ function initHeroTitleAnimation() {
 
   heroTitleAnimationPending = true;
   const begin = async () => {
-    try {
-      await document.fonts.ready;
-    } catch (error) {
-      heroTitleAnimationPending = false;
-      console.warn('Hero title animation skipped because document fonts did not finish loading.', error);
-      return;
-    }
-    if (motionPreference.matches || !title.isConnected || heroTitleAnimationStarted) {
-      heroTitleAnimationPending = false;
-      return;
-    }
-
     const titleStyle = getComputedStyle(title);
     const fontFamily = titleStyle.fontFamily.split(',')[0].trim().replace(/^['"]|['"]$/g, '');
     const fontSize = Number.parseFloat(titleStyle.fontSize) || 16;
@@ -1082,7 +1065,7 @@ function initHeroTitleAnimation() {
     heroTitleAnimationPending = false;
     const paddingX = 180;
     const paddingY = 180;
-    const dropDistance = Math.max(160, bounds.bottom + 24);
+    const dropDistance = 0;
     const width = Math.ceil(title.clientWidth + paddingX * 2);
     const height = Math.ceil(title.clientHeight + dropDistance + paddingY * 2);
     const ratio = Math.min(2, window.devicePixelRatio || 1);
@@ -1128,14 +1111,15 @@ function initHeroTitleAnimation() {
         y: dropDistance + paddingY + rect.top - bounds.top + leading,
       };
     });
-    const titleColor = getComputedStyle(title).color;
+    const pixelPatternCanvas = document.createElement('canvas');
+    pixelPatternCanvas.width = 8;
+    pixelPatternCanvas.height = 8;
+    const pixelPatternContext = pixelPatternCanvas.getContext('2d');
+    let pixelPattern = null;
     const shadowPattern = /((?:rgba?\([^)]*\)|#[\da-f]+|[a-z]+)\s+)?(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px(?:\s+((?:rgba?\([^)]*\)|#[\da-f]+|[a-z]+)))?/gi;
-    const textShadows = Array.from(titleStyle.textShadow.matchAll(shadowPattern), match => ({
-      color: match[1] || match[5] || 'transparent',
-      x: Number(match[2]),
-      y: Number(match[3]),
-      blur: Number(match[4]),
-    }));
+    let titleColor = '';
+    let textShadows = [];
+    let textureStyleKey = '';
     const drawLine = (target, item, x = item.x, y = item.y, color = titleColor, shadow = null) => {
       target.save();
       target.font = item.style.font;
@@ -1158,15 +1142,55 @@ function initHeroTitleAnimation() {
       }
       target.fillStyle = color;
       target.fillText(item.line.textContent, 0, 0);
+      if (!shadow && pixelPattern) {
+        target.globalCompositeOperation = 'source-atop';
+        target.fillStyle = pixelPattern;
+        target.fillText(item.line.textContent, 0, 0);
+      }
       target.restore();
     };
 
-    lineDetails.forEach(item => {
-      textShadows.forEach(shadow => {
-        drawLine(textureContext, item, item.x, item.y, titleColor, shadow);
+    const refreshTexture = () => {
+      const currentTitleStyle = getComputedStyle(title);
+      const styleKey = [
+        document.documentElement.dataset.theme,
+        currentTitleStyle.color,
+        currentTitleStyle.textShadow,
+        currentTitleStyle.getPropertyValue('--type-pixel-highlight'),
+        currentTitleStyle.getPropertyValue('--type-pixel-shadow'),
+      ].join('|');
+      if (styleKey === textureStyleKey) return;
+
+      titleColor = currentTitleStyle.color;
+      textShadows = Array.from(currentTitleStyle.textShadow.matchAll(shadowPattern), match => ({
+        color: match[1] || match[5] || 'transparent',
+        x: Number(match[2]),
+        y: Number(match[3]),
+        blur: Number(match[4]),
+      }));
+      if (pixelPatternContext) {
+        pixelPatternContext.clearRect(0, 0, pixelPatternCanvas.width, pixelPatternCanvas.height);
+        pixelPatternContext.fillStyle = currentTitleStyle.getPropertyValue('--type-pixel-highlight').trim()
+          || 'rgb(235 255 238 / 25%)';
+        pixelPatternContext.fillRect(1, 1, 2, 1);
+        pixelPatternContext.fillRect(5, 3, 1, 2);
+        pixelPatternContext.fillStyle = currentTitleStyle.getPropertyValue('--type-pixel-shadow').trim()
+          || 'rgb(17 49 29 / 20%)';
+        pixelPatternContext.fillRect(3, 5, 2, 1);
+        pixelPatternContext.fillRect(7, 0, 1, 2);
+        pixelPattern = textureContext.createPattern(pixelPatternCanvas, 'repeat');
+      }
+
+      textureContext.clearRect(0, 0, texture.width, texture.height);
+      lineDetails.forEach(item => {
+        textShadows.forEach(shadow => {
+          drawLine(textureContext, item, item.x, item.y, titleColor, shadow);
+        });
+        drawLine(textureContext, item);
       });
-      drawLine(textureContext, item);
-    });
+      textureStyleKey = styleKey;
+    };
+    refreshTexture();
 
     const texturePixels = textureContext.getImageData(0, 0, texture.width, texture.height).data;
     const cellSize = 7;
@@ -1245,130 +1269,140 @@ function initHeroTitleAnimation() {
       return;
     }
 
-    title.classList.add('is-assembling');
-    title.dataset.heroParticleCount = String(fragments.length);
-    title.appendChild(canvas);
-    const motionChange = event => {
-      if (event.matches) finishHeroTitleAnimation();
-    };
-    const resize = () => finishHeroTitleAnimation();
-    motionPreference.addEventListener('change', motionChange);
-    window.addEventListener('resize', resize, { once: true });
-    heroTitleAnimationCleanup = () => {
-      motionPreference.removeEventListener('change', motionChange);
-      window.removeEventListener('resize', resize);
-    };
-
-    const drawFragment = (fragment, x, y, rotation, alpha = 1) => {
+    const drawFragment = (fragment, x, y, rotation, alpha = 1, scale = 1) => {
       context.save();
       context.globalAlpha = alpha;
       context.translate(x + fragment.width / 2, y + fragment.height / 2);
       context.rotate(rotation);
+      const fragmentWidth = fragment.width * scale;
+      const fragmentHeight = fragment.height * scale;
       context.drawImage(
         texture,
         fragment.sourceX, fragment.sourceY, fragment.sourceWidth, fragment.sourceHeight,
-        -fragment.width / 2, -fragment.height / 2, fragment.width, fragment.height,
+        -fragmentWidth / 2, -fragmentHeight / 2, fragmentWidth, fragmentHeight,
       );
       context.restore();
     };
-    const fallDuration = .8;
-    const scatterDuration = .7;
-    const reassembleStart = 1.5;
-    const reassembleEnd = 3.5;
-    const totalDuration = 4;
-    const lineStagger = .55;
-    const lineDuration = .8;
-    const titleCenter = {
-      x: paddingX + title.clientWidth / 2,
-      y: dropDistance + paddingY + title.clientHeight / 2,
-    };
-    let elapsed = 0;
-    let previousFrame = 0;
-    const draw = now => {
-      if (!previousFrame) previousFrame = now;
-      const deltaTime = Math.min(.05, Math.max(0, (now - previousFrame) / 1000));
-      previousFrame = now;
-      elapsed = Math.min(totalDuration, elapsed + deltaTime);
-      context.clearRect(0, 0, width, height);
 
-      if (elapsed < fallDuration) {
-        title.dataset.heroAnimationPhase = 'drop';
-        const progress = elapsed / fallDuration;
-        const y = -dropDistance * (1 - progress * progress);
-        const rotation = -.1 * (1 - progress) + .015 * Math.sin(progress * Math.PI * 2) * (1 - progress);
-        context.save();
-        context.translate(titleCenter.x, titleCenter.y + y);
-        context.rotate(rotation);
-        context.translate(-titleCenter.x, -titleCenter.y);
-        context.drawImage(texture, 0, 0, width, height);
-        context.restore();
-      } else if (elapsed < reassembleStart) {
-        title.dataset.heroAnimationPhase = 'scatter';
-        const flightTime = Math.min(scatterDuration, elapsed - fallDuration);
-        const impactFlash = Math.max(0, 1 - (elapsed - fallDuration) / .16);
+    let clickAnimationFrame = 0;
+    let clickAnimationActive = false;
+    let clickAnimationCleanup = null;
+    let clickThemeObserver = null;
+    const stopClickAnimation = () => {
+      if (clickAnimationFrame) {
+        window.cancelAnimationFrame(clickAnimationFrame);
+        clickAnimationFrame = 0;
+      }
+      if (clickAnimationCleanup) {
+        clickAnimationCleanup();
+        clickAnimationCleanup = null;
+      }
+      clickThemeObserver?.disconnect();
+      clickThemeObserver = null;
+      canvas.remove();
+      title.classList.remove('is-assembling');
+      delete title.dataset.heroParticleCount;
+      clickAnimationActive = false;
+    };
+    const playClickAnimation = () => {
+      if (
+        clickAnimationActive ||
+        motionPreference.matches ||
+        !title.isConnected
+      ) return;
+
+      refreshTexture();
+      clickAnimationActive = true;
+      title.classList.add('is-assembling');
+      title.dataset.heroParticleCount = String(fragments.length);
+      title.appendChild(canvas);
+      const reduceMotionChange = event => {
+        if (event.matches) stopClickAnimation();
+      };
+      motionPreference.addEventListener('change', reduceMotionChange);
+      clickAnimationCleanup = () => {
+        motionPreference.removeEventListener('change', reduceMotionChange);
+      };
+      clickThemeObserver = new MutationObserver(refreshTexture);
+      clickThemeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme'],
+      });
+
+      const scatterDuration = .36;
+      const scatterTime = .42;
+      const rebuildDuration = .48;
+      const lineStagger = .055;
+      const totalDuration = scatterDuration + 2 * lineStagger + .08 + rebuildDuration;
+      let elapsed = 0;
+      let previousFrame = 0;
+      const drawClickAnimation = now => {
+        if (!previousFrame) previousFrame = now;
+        elapsed = Math.min(totalDuration, elapsed + Math.min(.05, Math.max(0, (now - previousFrame) / 1000)));
+        previousFrame = now;
+        context.clearRect(0, 0, width, height);
+
         fragments.forEach(fragment => {
-          const x = fragment.x + fragment.velocityX * flightTime;
-          const y = fragment.y + fragment.velocityY * flightTime +
-            .5 * fragment.gravity * flightTime * flightTime;
-          const rotation = fragment.scatterAngularVelocity * flightTime;
-          drawFragment(fragment, x, y, rotation);
-        });
-        if (impactFlash > 0) {
-          context.save();
-          context.globalCompositeOperation = 'lighter';
-          context.globalAlpha = impactFlash * .2;
-          context.fillStyle = '#79ff6b';
-          context.fillRect(paddingX, dropDistance + paddingY, title.clientWidth, title.clientHeight);
-          context.restore();
-        }
-      } else if (elapsed < reassembleEnd) {
-        title.dataset.heroAnimationPhase = 'reassemble';
-        fragments.forEach(fragment => {
-          const lineStart = reassembleStart + fragment.lineIndex * lineStagger + fragment.rebuildDelay;
-          const progress = Math.max(0, Math.min(1, (elapsed - lineStart) / lineDuration));
+          const lineStart = scatterDuration + fragment.lineIndex * lineStagger + fragment.rebuildDelay;
+          if (elapsed < scatterDuration) {
+            const progress = elapsed / scatterDuration;
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const flightTime = scatterTime * eased;
+            const x = fragment.x + fragment.velocityX * flightTime;
+            const y = fragment.y + fragment.velocityY * flightTime +
+              .5 * fragment.gravity * flightTime * flightTime;
+            drawFragment(
+              fragment, x, y, fragment.scatterAngularVelocity * flightTime,
+              1 - .35 * progress, 1 - .18 * progress,
+            );
+            return;
+          }
+
+          const progress = Math.max(0, Math.min(1, (elapsed - lineStart) / rebuildDuration));
           const eased = 1 - Math.pow(1 - progress, 3);
-          const scatterTime = scatterDuration;
           const scatteredX = fragment.x + fragment.velocityX * scatterTime;
           const scatteredY = fragment.y + fragment.velocityY * scatterTime +
             .5 * fragment.gravity * scatterTime * scatterTime;
           const scatteredRotation = fragment.scatterAngularVelocity * scatterTime;
           const x = scatteredX + (fragment.x - scatteredX) * eased;
           const y = scatteredY + (fragment.y - scatteredY) * eased;
-          const rotation = scatteredRotation * (1 - eased);
-          drawFragment(fragment, x, y, rotation);
-
-          if (
-            progress > 0 &&
-            progress < 1 &&
-            fragment.glitchSeed < .09 &&
-            (elapsed + fragment.glitchSeed * .7) % .84 < .045
-          ) {
-            drawFragment(fragment, x + fragment.glitchOffset, y, rotation, .42);
-          }
+          drawFragment(
+            fragment, x, y, scatteredRotation * (1 - eased),
+            .65 + .35 * eased, .82 + .18 * eased,
+          );
         });
-      } else {
-        title.dataset.heroAnimationPhase = 'final-glitch';
-        context.drawImage(texture, 0, 0, width, height);
-        const finalTime = elapsed - reassembleEnd;
-        const flicker = [0.06, 0.21, 0.37].some(start => finalTime >= start && finalTime < start + .035);
-        if (flicker) {
-          context.save();
-          context.globalCompositeOperation = 'lighter';
-          context.globalAlpha = .23;
-          context.fillStyle = '#79ff6b';
-          context.fillRect(paddingX, dropDistance + paddingY, title.clientWidth, title.clientHeight);
-          context.restore();
-        }
-      }
 
-      if (elapsed < totalDuration) {
-        heroTitleAnimationFrame = window.requestAnimationFrame(draw);
-      } else {
-        heroTitleAnimationFrame = 0;
-        finishHeroTitleAnimation();
-      }
+        if (elapsed < totalDuration) {
+          clickAnimationFrame = window.requestAnimationFrame(drawClickAnimation);
+        } else {
+          stopClickAnimation();
+        }
+      };
+      clickAnimationFrame = window.requestAnimationFrame(drawClickAnimation);
     };
-    heroTitleAnimationFrame = window.requestAnimationFrame(draw);
+    const onTitleKeydown = event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      if (!event.repeat) playClickAnimation();
+    };
+    const onResize = () => {
+      if (heroTitleInteractionCleanup) {
+        heroTitleInteractionCleanup();
+        heroTitleInteractionCleanup = null;
+      }
+      heroTitleAnimationStarted = false;
+      initHeroTitleAnimation();
+    };
+    title.addEventListener('click', playClickAnimation);
+    title.addEventListener('keydown', onTitleKeydown);
+    window.addEventListener('resize', onResize, { once: true });
+    heroTitleInteractionCleanup = () => {
+      title.removeEventListener('click', playClickAnimation);
+      title.removeEventListener('keydown', onTitleKeydown);
+      window.removeEventListener('resize', onResize);
+      stopClickAnimation();
+    };
+
   };
 
   void begin();

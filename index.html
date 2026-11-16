@@ -20,6 +20,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="image" href="assets/image/Basketball Player Roster Cutout.png">
 <!-- Keep only weights used by the page and swap immediately to the existing system fallbacks. -->
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;700&family=Cormorant+Garamond:wght@300;400&family=JetBrains+Mono:wght@400;500;700&family=Pixelify+Sans:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
@@ -165,7 +166,7 @@
         </div>
 
         <p class="hero-eyebrow">PIXELVERSE PRESENTS</p>
-        <h1 class="hero-title" aria-label="EXPLORE. LEARN. LEVEL UP.">
+        <h1 class="hero-title" aria-label="EXPLORE. LEARN. LEVEL UP." aria-description="Press Enter or Space to break apart and rebuild the title." tabindex="0">
           <span class="hero-title-line" aria-hidden="true">EXPLORE.</span>
           <span class="hero-title-line" aria-hidden="true">LEARN.</span>
           <span class="hero-title-line" aria-hidden="true">LEVEL UP.</span>
@@ -217,10 +218,10 @@
             <span class="imx-toast" id="imx-click-toast" aria-hidden="true"></span>
             <span class="imx-visually-hidden" id="imx-click-announcement" role="status" aria-live="polite" aria-atomic="true"></span>
           </article>
-          <article class="imx-card">
+          <article class="imx-card imx-tilt-card">
             <h3>Hover response</h3>
             <p>Move your pointer over the panel.</p>
-            <div class="imx-tilt-panel" id="imx-tilt-panel" tabindex="0">Your pointer changes my perspective.</div>
+            <div class="imx-tilt-panel" id="imx-tilt-panel" tabindex="0"><span class="imx-tilt-content">Your pointer changes my perspective.</span></div>
           </article>
           <article class="imx-card imx-state-card">
             <h3>State toggle</h3>
@@ -338,11 +339,44 @@
         <p class="imx-visually-hidden" id="imx-game-announcement" role="status" aria-live="polite" aria-atomic="true"></p>
         <div class="imx-game-shell">
           <canvas class="imx-canvas imx-game-canvas" id="imx-game-canvas" tabindex="0" role="img" aria-label="Catch the Signals game. Move the paddle to catch blue signals and avoid red glitches."></canvas>
+          <div class="imx-game-feedback" id="imx-game-feedback" aria-hidden="true"></div>
+          <div class="imx-game-celebration" id="imx-game-celebration" aria-hidden="true">
+            <img class="imx-game-celebration-player" src="assets/image/Basketball Player Roster Cutout.png" alt="">
+            <div class="imx-game-speech">Nice one lods!</div>
+          </div>
           <div class="imx-game-overlay" id="imx-game-overlay">
             <div class="imx-game-overlay-card">
-              <h3 id="imx-game-overlay-title">Ready to play?</h3>
-              <p id="imx-game-overlay-copy">Catch blue signals and dodge red glitches. You have 30 seconds.</p>
-              <button class="imx-button" id="imx-game-start" type="button">Start game</button>
+              <header class="imx-game-overlay-header">
+                <div class="imx-game-overlay-brand">
+                  <span class="imx-game-pixel-mark" aria-hidden="true"></span>
+                  <span>PIXELVERSE ARCADE</span>
+                </div>
+                <span class="imx-game-overlay-edition">SIGNAL RUN / 01</span>
+              </header>
+              <section class="imx-game-overlay-main">
+                <p class="imx-game-overlay-kicker">CATCH THE SIGNALS</p>
+                <h3 id="imx-game-overlay-title">Ready to play?</h3>
+                <p id="imx-game-overlay-copy">Catch signals. Dodge glitches. Last 30 seconds.</p>
+              </section>
+              <div class="imx-game-overlay-info" role="group" aria-label="Game instructions">
+                <div class="imx-game-info-cell">
+                  <span class="imx-game-info-label">SIGNAL</span>
+                  <strong class="imx-game-info-value">+1</strong>
+                </div>
+                <div class="imx-game-info-cell">
+                  <span class="imx-game-info-label">GLITCH</span>
+                  <strong class="imx-game-info-value">−2</strong>
+                </div>
+                <div class="imx-game-info-cell">
+                  <span class="imx-game-info-label">ROUND</span>
+                  <strong class="imx-game-info-value">30 SEC</strong>
+                </div>
+                <div class="imx-game-info-cell">
+                  <span class="imx-game-info-label">MOVE</span>
+                  <strong class="imx-game-info-value">MOUSE / TOUCH / ← →</strong>
+                </div>
+              </div>
+              <button class="imx-button imx-game-start-button" id="imx-game-start" type="button">Start game</button>
             </div>
           </div>
         </div>

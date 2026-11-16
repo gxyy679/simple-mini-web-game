@@ -182,27 +182,44 @@
   });
 
   const tiltPanel = document.getElementById('imx-tilt-panel');
-  let tiltWidth = tiltPanel.clientWidth;
-  let tiltHeight = tiltPanel.clientHeight;
-  if ('ResizeObserver' in window) {
-    observe(new ResizeObserver(() => {
-      tiltWidth = tiltPanel.clientWidth;
-      tiltHeight = tiltPanel.clientHeight;
-    }), tiltPanel);
-  }
+  let tiltFrame = 0;
+  let pendingPointer = null;
   listen(tiltPanel, 'pointermove', event => {
-    if (reducedMotion.matches) return;
-    const x = event.offsetX / tiltWidth - 0.5;
-    const y = event.offsetY / tiltHeight - 0.5;
-    tiltPanel.style.setProperty('--imx-tilt-x', `${-y * 12}deg`);
-    tiltPanel.style.setProperty('--imx-tilt-y', `${x * 14}deg`);
+    if (reducedMotion.matches || event.pointerType === 'touch') return;
+    pendingPointer = { x: event.clientX, y: event.clientY };
+    if (tiltFrame) return;
+    tiltFrame = requestAnimationFrame(() => {
+      tiltFrame = 0;
+      if (!pendingPointer) return;
+      const pointer = pendingPointer;
+      pendingPointer = null;
+      const bounds = tiltPanel.getBoundingClientRect();
+      const pointerX = Math.max(-1, Math.min(1, ((pointer.x - bounds.left) / Math.max(1, bounds.width) - 0.5) * 2));
+      const pointerY = Math.max(-1, Math.min(1, ((pointer.y - bounds.top) / Math.max(1, bounds.height) - 0.5) * 2));
+      tiltPanel.style.setProperty('--imx-tilt-x', `${-pointerY * 18}deg`);
+      tiltPanel.style.setProperty('--imx-tilt-y', `${pointerX * 20}deg`);
+      tiltPanel.style.setProperty('--imx-pointer-x', `${(pointerX + 1) * 50}%`);
+      tiltPanel.style.setProperty('--imx-pointer-y', `${(pointerY + 1) * 50}%`);
+      tiltPanel.style.setProperty('--imx-shadow-x', `${-pointerX * 8}px`);
+      tiltPanel.style.setProperty('--imx-shadow-y', `${-pointerY * 8}px`);
+    });
   });
   const resetTilt = () => {
+    if (tiltFrame) cancelAnimationFrame(tiltFrame);
+    tiltFrame = 0;
+    pendingPointer = null;
     tiltPanel.style.setProperty('--imx-tilt-x', '0deg');
     tiltPanel.style.setProperty('--imx-tilt-y', '0deg');
+    tiltPanel.style.setProperty('--imx-pointer-x', '50%');
+    tiltPanel.style.setProperty('--imx-pointer-y', '50%');
+    tiltPanel.style.setProperty('--imx-shadow-x', '0px');
+    tiltPanel.style.setProperty('--imx-shadow-y', '0px');
   };
   listen(tiltPanel, 'pointerleave', resetTilt);
   listen(tiltPanel, 'blur', resetTilt);
+  listen(reducedMotion, 'change', () => {
+    if (reducedMotion.matches) resetTilt();
+  });
 
   const lightsSwitch = document.getElementById('imx-lights-switch');
   const lightsLabel = document.getElementById('imx-lights-label');
@@ -600,6 +617,9 @@
   const gameCanvas = document.getElementById('imx-game-canvas');
   const gameContext = gameCanvas.getContext('2d');
   const gameScoreNode = document.getElementById('imx-game-score');
+  const gameFeedbackOverlay = document.getElementById('imx-game-feedback');
+  const gameCelebration = document.getElementById('imx-game-celebration');
+  const gameCelebrationSpeech = gameCelebration.querySelector('.imx-game-speech');
   const gameTimeNode = document.getElementById('imx-game-time');
   const gameBestNode = document.getElementById('imx-game-best');
   const gameAnnouncement = document.getElementById('imx-game-announcement');
@@ -616,7 +636,10 @@
   let elapsedTime = 0;
   let spawnElapsed = 0;
   let gameAnnouncementTimer;
+  let gameCelebrationTimer;
   let gameScore = 0;
+  let consecutivePositiveScores = 0;
+  let consecutiveNegativeScores = 0;
   let gameBest = 0;
   let gameWidth = 0;
   let gameHeight = 0;
@@ -624,9 +647,61 @@
   let gameBackgroundHeight = 0;
   let platformGlowUntil = 0;
   let gameItems = [];
+  const gameFeedbackAnimations = new Map();
   const paddle = { x: 0, width: 82, height: 13, y: 0 };
   const gameKeys = new Set();
   listen(window, 'blur', () => gameKeys.clear());
+
+  function animateGameFeedback(target, keyframes, duration) {
+    gameFeedbackAnimations.get(target)?.cancel();
+    const animation = target.animate(keyframes, { duration, easing: 'ease-out' });
+    gameFeedbackAnimations.set(target, animation);
+    animation.onfinish = () => {
+      if (gameFeedbackAnimations.get(target) === animation) gameFeedbackAnimations.delete(target);
+    };
+  }
+
+  function triggerGameFeedback(positive) {
+    const feedbackColor = getComputedStyle(document.documentElement)
+      .getPropertyValue(positive ? '--imx-game-feedback-positive' : '--imx-game-feedback-negative').trim();
+    const reduced = reducedMotion.matches;
+    gameFeedbackOverlay.dataset.tone = positive ? 'positive' : 'negative';
+    animateGameFeedback(gameFeedbackOverlay, [
+      { opacity: 0 },
+      { opacity: reduced ? 0.32 : 0.62, offset: 0.18 },
+      { opacity: 0 }
+    ], reduced ? 420 : 620);
+    animateGameFeedback(gameScoreNode, [
+      { color: getComputedStyle(gameScoreNode).color, textShadow: 'none', transform: 'scale(1)' },
+      { color: feedbackColor, textShadow: `0 0 ${reduced ? 7 : 14}px ${feedbackColor}`, transform: `scale(${reduced ? 1.06 : 1.18})`, offset: 0.28 },
+      { color: getComputedStyle(gameScoreNode).color, textShadow: 'none', transform: 'scale(1)' }
+    ], reduced ? 420 : 620);
+    if (!positive) {
+      animateGameFeedback(gameCanvas, reduced
+        ? [{ transform: 'translateX(0)' }, { transform: 'translateX(-1px)' }, { transform: 'translateX(1px)' }, { transform: 'translateX(0)' }]
+        : [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(2px)' }, { transform: 'translateX(0)' }], reduced ? 220 : 300);
+    }
+  }
+
+  function celebrateScoreStreak(tone, message) {
+    clearScheduled(gameCelebrationTimer);
+    gameCelebration.classList.remove('is-celebrating');
+    gameCelebration.dataset.tone = tone;
+    gameCelebrationSpeech.textContent = message;
+    void gameCelebration.offsetWidth;
+    gameCelebration.classList.add('is-celebrating');
+    gameCelebrationTimer = schedule(() => {
+      gameCelebration.classList.remove('is-celebrating');
+      gameCelebrationTimer = undefined;
+    }, reducedMotion.matches ? 1600 : 2400);
+  }
+
+  onDestroy(() => {
+    gameFeedbackAnimations.forEach(animation => animation.cancel());
+    gameFeedbackAnimations.clear();
+    clearScheduled(gameCelebrationTimer);
+    gameCelebration.classList.remove('is-celebrating');
+  });
 
   try {
     const storedBest = Number(localStorage.getItem(bestKey));
@@ -755,12 +830,23 @@
       item.y += speed * delta;
       if (item.y + item.radius >= paddle.y && item.y - item.radius <= paddle.y + paddle.height
         && Math.abs(item.x - paddle.x) <= paddle.width / 2 + item.radius) {
-        if (item.kind === 'signal') platformGlowUntil = performance.now() + 620;
+        const positive = item.kind === 'signal';
+        if (positive) platformGlowUntil = performance.now() + 620;
+        consecutivePositiveScores = positive ? consecutivePositiveScores + 1 : 0;
+        consecutiveNegativeScores = positive ? 0 : consecutiveNegativeScores + 1;
         gameScore += item.kind === 'signal' ? 1 : -2;
         gameScoreNode.textContent = String(gameScore);
+        triggerGameFeedback(positive);
+        if (consecutivePositiveScores === 4) {
+          celebrateScoreStreak('positive', 'Nice one lods!');
+        } else if (consecutiveNegativeScores === 2) {
+          celebrateScoreStreak('negative', 'Hustisyaaa...mamaaaa....');
+        }
         announceGame(`Score ${gameScore}.`);
         gameItems.splice(index, 1);
       } else if (item.y >= gameHeight + item.radius) {
+        consecutivePositiveScores = 0;
+        consecutiveNegativeScores = 0;
         gameItems.splice(index, 1);
       }
     }
@@ -774,8 +860,13 @@
   }
 
   function startGame() {
+    clearScheduled(gameCelebrationTimer);
+    gameCelebrationTimer = undefined;
+    gameCelebration.classList.remove('is-celebrating');
     gameItems = [];
     gameScore = 0;
+    consecutivePositiveScores = 0;
+    consecutiveNegativeScores = 0;
     elapsedTime = 0;
     spawnElapsed = 0;
     gameLastTime = 0;
