@@ -242,19 +242,34 @@ const BADGES = [
    2. PIXEL ICONS (rect-based inline SVG — always crisp)
    --------------------------------------------------------- */
 const ICONS = {
-  monitor: [[3,3,18,13,'var(--ink)'],[5,5,14,9,'var(--cream)'],[9,7,6,5,'var(--neon-mint)'],[9,17,6,2,'var(--ink)'],[7,19,10,2,'var(--ink)']],
-  code: [[6,6,3,3,'var(--pixel-green)'],[3,9,3,3,'var(--pixel-green)'],[6,12,3,3,'var(--pixel-green)'],[15,6,3,3,'var(--pixel-green)'],[18,9,3,3,'var(--pixel-green)'],[15,12,3,3,'var(--pixel-green)'],[13,15,2,2,'var(--neon-mint)'],[11,11,2,2,'var(--neon-mint)'],[15,9,2,2,'var(--neon-mint)']],
-  browser: [[2,4,20,16,'var(--ink)'],[3,5,18,3,'var(--muted-gray)'],[4,6,1.5,1.5,'var(--neon-mint)'],[7,6,1.5,1.5,'var(--neon-mint)'],[10,6,1.5,1.5,'var(--neon-mint)'],[4,10,16,9,'var(--cream)']],
-  palette: [[4,4,16,14,'var(--ink)'],[6,6,12,10,'var(--cream)'],[8,8,3,3,'var(--pixel-green)'],[13,8,3,3,'var(--neon-mint)'],[8,12,3,3,'var(--muted-gray)'],[13,12,3,3,'var(--deep-green)']],
-  book: [[3,5,8,15,'var(--pixel-green)'],[13,5,8,15,'var(--pixel-green)'],[11,5,2,15,'var(--ink)'],[5,8,5,1.5,'var(--ink)'],[5,11,5,1.5,'var(--ink)'],[14,8,5,1.5,'var(--ink)'],[14,11,5,1.5,'var(--ink)']],
+  home: [[3,11,9,9,'var(--icon-mint)'],[5,7,14,2,'var(--icon-mint)'],[7,5,10,2,'var(--icon-mint)'],[17,11,4,9,'var(--icon-mint)'],[9,14,4,6,'var(--ink)']],
+  map: [[3,5,5,15,'var(--icon-mint)'],[9,3,6,17,'var(--ink)'],[16,5,5,15,'var(--icon-mint)'],[5,8,2,2,'var(--ink)'],[18,14,2,2,'var(--ink)']],
+  medal: [[8,3,8,3,'var(--icon-mint)'],[6,6,12,9,'var(--icon-mint)'],[9,9,6,4,'var(--ink)'],[8,15,4,7,'var(--icon-mint)'],[12,15,4,7,'var(--icon-mint)']],
+  cursor: [[5,3,4,4,'var(--icon-mint)'],[5,7,4,4,'var(--icon-mint)'],[5,11,4,4,'var(--icon-mint)'],[9,15,4,4,'var(--icon-mint)'],[13,17,3,4,'var(--ink)']],
+  eye: [[3,10,4,4,'var(--icon-mint)'],[6,7,4,3,'var(--icon-mint)'],[6,14,4,3,'var(--icon-mint)'],[10,5,4,3,'var(--icon-mint)'],[10,16,4,3,'var(--icon-mint)'],[14,7,4,3,'var(--icon-mint)'],[14,14,4,3,'var(--icon-mint)'],[18,10,3,4,'var(--icon-mint)'],[10,10,4,4,'var(--ink)']],
+  toggle: [[3,8,18,8,'var(--ink)'],[5,10,6,4,'var(--icon-mint)'],[13,10,6,4,'var(--muted-gray)']],
+  speed: [[3,5,7,3,'var(--icon-mint)'],[3,10,13,3,'var(--icon-mint)'],[3,15,18,3,'var(--icon-mint)'],[18,4,3,5,'var(--ink)']],
+  animate: [[4,4,6,6,'var(--icon-mint)'],[14,4,6,6,'var(--ink)'],[4,14,6,6,'var(--ink)'],[14,14,6,6,'var(--icon-mint)']],
+  effects: [[4,4,5,5,'var(--icon-mint)'],[15,4,5,5,'var(--ink)'],[4,15,5,5,'var(--ink)'],[15,15,5,5,'var(--icon-mint)'],[10,10,4,4,'var(--icon-mint)']],
+  design: [[3,4,17,16,'var(--ink)'],[5,6,13,12,'var(--icon-mint)'],[7,15,10,1,'var(--ink)'],[15,8,2,5,'var(--ink)']],
+  cube: [[5,4,14,3,'var(--icon-mint)'],[3,7,18,12,'var(--ink)'],[6,10,12,6,'var(--icon-mint)'],[10,7,4,12,'var(--ink)'],[5,19,14,2,'var(--icon-mint)']],
+  gamepad: [[4,8,16,9,'var(--ink)'],[7,10,2,5,'var(--icon-mint)'],[5,12,6,2,'var(--icon-mint)'],[15,10,2,2,'var(--icon-mint)'],[18,13,2,2,'var(--icon-mint)']],
+  signal: [[3,16,4,4,'var(--icon-mint)'],[9,12,4,8,'var(--icon-mint)'],[15,8,4,12,'var(--icon-mint)'],[21,4,2,16,'var(--icon-mint)']],
+  clock: [[8,3,8,2,'var(--icon-mint)'],[5,5,3,3,'var(--icon-mint)'],[3,8,2,8,'var(--icon-mint)'],[5,16,3,3,'var(--icon-mint)'],[8,19,8,2,'var(--icon-mint)'],[16,16,3,3,'var(--icon-mint)'],[19,8,2,8,'var(--icon-mint)'],[16,5,3,3,'var(--icon-mint)'],[11,7,2,6,'var(--ink)'],[11,12,6,2,'var(--ink)']],
+  record: [[8,3,8,4,'var(--icon-mint)'],[5,7,14,10,'var(--icon-mint)'],[8,17,8,4,'var(--icon-mint)'],[10,10,4,4,'var(--ink)']],
+  monitor: [[3,3,18,13,'var(--ink)'],[5,5,14,9,'var(--cream)'],[9,7,6,5,'var(--icon-mint)'],[9,17,6,2,'var(--ink)'],[7,19,10,2,'var(--ink)']],
+  code: [[6,6,3,3,'var(--icon-mint)'],[3,9,3,3,'var(--icon-mint)'],[6,12,3,3,'var(--icon-mint)'],[15,6,3,3,'var(--icon-mint)'],[18,9,3,3,'var(--icon-mint)'],[15,12,3,3,'var(--icon-mint)'],[13,15,2,2,'var(--icon-mint)'],[11,11,2,2,'var(--icon-mint)'],[15,9,2,2,'var(--icon-mint)']],
+  browser: [[2,4,20,16,'var(--ink)'],[3,5,18,3,'var(--muted-gray)'],[4,6,2,2,'var(--icon-mint)'],[8,6,2,2,'var(--icon-mint)'],[12,6,2,2,'var(--icon-mint)'],[4,10,16,9,'var(--cream)']],
+  palette: [[4,4,16,14,'var(--ink)'],[6,6,12,10,'var(--cream)'],[8,8,3,3,'var(--icon-mint)'],[13,8,3,3,'var(--icon-mint)'],[8,12,3,3,'var(--muted-gray)'],[13,12,3,3,'var(--deep-green)']],
+  book: [[3,5,8,15,'var(--icon-mint)'],[13,5,8,15,'var(--icon-mint)'],[11,5,2,15,'var(--ink)'],[5,8,5,2,'var(--ink)'],[5,11,5,2,'var(--ink)'],[14,8,5,2,'var(--ink)'],[14,11,5,2,'var(--ink)']],
   flashcard: [[4,3,16,18,'var(--ink)'],[6,5,12,14,'var(--cream)'],[14,5,4,4,'var(--muted-gray)']],
-  quiz: [[3,3,18,18,'var(--ink)'],[5,5,14,14,'var(--cream)'],[9,7,6,3,'var(--pixel-green)'],[13,10,2,3,'var(--pixel-green)'],[11,14,2,2,'var(--pixel-green)']],
-  puzzle: [[3,3,8,8,'var(--pixel-green)'],[13,3,8,8,'var(--neon-mint)'],[3,13,8,8,'var(--neon-mint)'],[13,13,8,8,'var(--pixel-green)'],[10,10,4,4,'var(--ink)']],
-  terminal: [[2,4,20,16,'var(--ink)'],[4,6,16,12,'var(--midnight)'],[6,10,2,2,'var(--pixel-green)'],[9,10,2,2,'var(--pixel-green)'],[6,13,6,2,'var(--pixel-green)']],
-  badge: [[8,2,8,8,'var(--neon-mint)'],[6,9,12,8,'var(--pixel-green)'],[8,16,2,6,'var(--ink)'],[14,16,2,6,'var(--ink)']],
-  star: [[11,2,2,2,'var(--neon-mint)'],[9,4,6,2,'var(--neon-mint)'],[7,6,10,2,'var(--neon-mint)'],[5,8,14,2,'var(--neon-mint)'],[7,10,10,2,'var(--neon-mint)'],[8,12,2,2,'var(--neon-mint)'],[14,12,2,2,'var(--neon-mint)'],[6,14,3,2,'var(--neon-mint)'],[15,14,3,2,'var(--neon-mint)']],
-  trophy: [[8,2,8,8,'var(--neon-mint)'],[4,3,4,3,'var(--neon-mint)'],[16,3,4,3,'var(--neon-mint)'],[10,10,4,4,'var(--ink)'],[7,15,10,2,'var(--ink)'],[9,17,6,2,'var(--ink)']],
-  check: [[18,5,2,2,'var(--pixel-green)'],[16,7,2,2,'var(--pixel-green)'],[14,9,2,2,'var(--pixel-green)'],[12,11,2,2,'var(--pixel-green)'],[10,13,2,2,'var(--pixel-green)'],[6,9,2,2,'var(--pixel-green)'],[8,11,2,2,'var(--pixel-green)']],
+  quiz: [[3,3,18,18,'var(--ink)'],[5,5,14,14,'var(--cream)'],[9,7,6,3,'var(--icon-mint)'],[13,10,2,3,'var(--icon-mint)'],[11,14,2,2,'var(--icon-mint)']],
+  puzzle: [[3,3,8,8,'var(--icon-mint)'],[13,3,8,8,'var(--icon-mint)'],[3,13,8,8,'var(--icon-mint)'],[13,13,8,8,'var(--icon-mint)'],[10,10,4,4,'var(--ink)']],
+  terminal: [[2,4,20,16,'var(--ink)'],[4,6,16,12,'var(--midnight)'],[6,10,2,2,'var(--icon-mint)'],[9,10,2,2,'var(--icon-mint)'],[6,13,6,2,'var(--icon-mint)']],
+  badge: [[8,2,8,8,'var(--icon-mint)'],[6,9,12,8,'var(--icon-mint)'],[8,16,2,6,'var(--ink)'],[14,16,2,6,'var(--ink)']],
+  star: [[11,2,2,2,'var(--icon-mint)'],[9,4,6,2,'var(--icon-mint)'],[7,6,10,2,'var(--icon-mint)'],[5,8,14,2,'var(--icon-mint)'],[7,10,10,2,'var(--icon-mint)'],[8,12,2,2,'var(--icon-mint)'],[14,12,2,2,'var(--icon-mint)'],[6,14,3,2,'var(--icon-mint)'],[15,14,3,2,'var(--icon-mint)']],
+  trophy: [[8,2,8,8,'var(--icon-mint)'],[4,3,4,3,'var(--icon-mint)'],[16,3,4,3,'var(--icon-mint)'],[10,10,4,4,'var(--ink)'],[7,15,10,2,'var(--ink)'],[9,17,6,2,'var(--ink)']],
+  check: [[18,5,2,2,'var(--icon-mint)'],[16,7,2,2,'var(--icon-mint)'],[14,9,2,2,'var(--icon-mint)'],[12,11,2,2,'var(--icon-mint)'],[10,13,2,2,'var(--icon-mint)'],[6,9,2,2,'var(--icon-mint)'],[8,11,2,2,'var(--icon-mint)']],
   lock: [[8,10,8,9,'var(--muted-gray)'],[9,4,6,7,'var(--muted-gray)'],[11,13,2,3,'var(--ink)']]
 };
 
@@ -362,9 +377,38 @@ function initTheme() {
    --------------------------------------------------------- */
 let currentZoneId = null;
 let currentLessonId = null;
+let viewTransitionTimer = 0;
+const viewTransitionDuration = 620;
 
 function showView(name) {
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
+  const views = Array.from(document.querySelectorAll('.view'));
+  const nextView = views.find(view => view.dataset.view === name);
+  if (!nextView) return;
+
+  const currentView = document.querySelector('.view.active:not(.is-leaving)')
+    || document.querySelector('.view.active');
+  window.clearTimeout(viewTransitionTimer);
+  viewTransitionTimer = 0;
+
+  views.filter(view => view.classList.contains('is-leaving')).forEach(view => {
+    view.classList.remove('active', 'is-leaving');
+  });
+
+  if (currentView && currentView !== nextView
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    currentView.classList.add('is-leaving');
+    nextView.classList.add('active');
+    viewTransitionTimer = window.setTimeout(() => {
+      currentView.classList.remove('active', 'is-leaving');
+      viewTransitionTimer = 0;
+    }, viewTransitionDuration);
+  } else {
+    views.forEach(view => {
+      view.classList.toggle('active', view === nextView);
+      view.classList.remove('is-leaving');
+    });
+  }
+
   document.querySelectorAll('.nav-link[data-nav]').forEach(button => {
     const active = button.dataset.nav === name;
     button.classList.toggle('is-active', active);
@@ -375,6 +419,58 @@ function showView(name) {
   if (name === 'zones') renderZonesGrid();
   if (name === 'achievements') renderAchievements();
   if (name === 'home') renderHeroStats();
+}
+
+function initScrollReveals() {
+  const main = document.getElementById('main');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (!('IntersectionObserver' in window) || reduceMotion.matches) return () => {};
+
+  const selector = [
+    '#view-zones .section-head > *',
+    '.intro-grid > .intro-card',
+    '.zones-grid > .zone-card',
+    '#zone-detail-content > .zone-header',
+    '#zone-detail-content .lesson-list > .lesson-card',
+    '#lesson-content > .lesson-header',
+    '#lesson-content > .lesson-reading',
+    '#lesson-content > .activity-wrap',
+    '#view-achievements .section-label',
+    '#view-achievements > .profile-card',
+    '#view-achievements .badges-grid > .badge-card',
+  ].join(', ');
+  const observed = new WeakSet();
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      entry.target.classList.toggle('motion-is-visible', entry.isIntersecting);
+    });
+  }, { root: main, threshold: 0.12, rootMargin: '0px 0px -5% 0px' });
+
+  const revealElements = nodes => {
+    nodes.forEach(node => {
+      if (!(node instanceof Element)) return;
+      const elements = [];
+      if (node.matches(selector)) elements.push(node);
+      elements.push(...node.querySelectorAll(selector));
+      elements.forEach(element => {
+        if (observed.has(element)) return;
+        observed.add(element);
+        element.classList.add('motion-reveal');
+        revealObserver.observe(element);
+      });
+    });
+  };
+
+  revealElements([main]);
+  const contentObserver = new MutationObserver(mutations => {
+    mutations.forEach(mutation => revealElements(Array.from(mutation.addedNodes)));
+  });
+  contentObserver.observe(main, { childList: true, subtree: true });
+
+  return () => {
+    contentObserver.disconnect();
+    revealObserver.disconnect();
+  };
 }
 
 /* ---------------------------------------------------------
@@ -389,10 +485,10 @@ function renderHeroStats() {
   const done = progress.completedLessons.length;
   const el = document.getElementById('hero-stats');
   el.innerHTML = `
-    <div class="stat-block"><span class="stat-num">${ZONES.length}</span><span class="stat-label">ZONES</span></div>
-    <div class="stat-block"><span class="stat-num">${totalLessons()}</span><span class="stat-label">CHALLENGES</span></div>
-    <div class="stat-block"><span class="stat-num">${done}/${totalLessons()}</span><span class="stat-label">COMPLETE</span></div>
-    <div class="stat-block"><span class="stat-num">LV.${levelFromXP(progress.xp)}</span><span class="stat-label">YOUR LEVEL</span></div>
+    <div class="stat-block">${renderIcon('map', 16)}<span class="stat-num">${ZONES.length}</span><span class="stat-label">ZONES</span></div>
+    <div class="stat-block">${renderIcon('code', 16)}<span class="stat-num">${totalLessons()}</span><span class="stat-label">CHALLENGES</span></div>
+    <div class="stat-block">${renderIcon('check', 16)}<span class="stat-num">${done}/${totalLessons()}</span><span class="stat-label">COMPLETE</span></div>
+    <div class="stat-block">${renderIcon('star', 16)}<span class="stat-num">LV.${levelFromXP(progress.xp)}</span><span class="stat-label">YOUR LEVEL</span></div>
   `;
 }
 
@@ -1414,6 +1510,7 @@ function initHeroTitleAnimation() {
 function init() {
   initTheme();
   const cleanupScrollIndicator = initScrollIndicator();
+  const cleanupScrollReveals = initScrollReveals();
   document.getElementById('themeToggle').addEventListener('change', event => {
     setTheme(event.currentTarget.checked ? 'dark' : 'light');
   });
@@ -1446,8 +1543,11 @@ function init() {
   const cleanupParticleOnPageHide = event => {
     if (event.persisted) return;
     finishHeroTitleAnimation();
+    window.clearTimeout(viewTransitionTimer);
+    viewTransitionTimer = 0;
     cleanupParticleMotion();
     cleanupScrollIndicator();
+    cleanupScrollReveals();
     window.removeEventListener('pagehide', cleanupParticleOnPageHide);
   };
   window.addEventListener('pagehide', cleanupParticleOnPageHide);

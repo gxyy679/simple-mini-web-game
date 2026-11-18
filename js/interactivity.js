@@ -21,10 +21,11 @@
     if (activeModuleState) activeModuleState.disposers.push(dispose);
   }
 
-  function observe(observer, target) {
+  function observe(observer, target, options) {
     activeObservers.add(observer);
     if (activeModuleState) activeModuleState.observers.add(observer);
-    observer.observe(target);
+    if (options) observer.observe(target, options);
+    else observer.observe(target);
     return observer;
   }
 
@@ -129,22 +130,23 @@
   };
   const isCanvasActive = canvas => canvas.matches(':hover') || canvas === document.activeElement;
 
-  /* Section navigation and one-time reveals are isolated from the existing SPA navigation. */
+  /* Section navigation and repeatable reveals share the existing observer lifecycle. */
   const navigationModule = createSectionModule(() => {
-  if ('IntersectionObserver' in window) {
+    if (reducedMotion.matches || !('IntersectionObserver' in window)) {
+      sections.forEach(section => section.classList.add('imx-is-visible'));
+      return;
+    }
+
     const revealObserver = observe(new IntersectionObserver((entries, observer) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('imx-is-visible');
-          observer.unobserve(entry.target);
+        const isVisible = entry.isIntersecting;
+        if (entry.target.classList.contains('imx-is-visible') !== isVisible) {
+          entry.target.classList.toggle('imx-is-visible', isVisible);
         }
       });
     }, { root: main, threshold: 0.06 }), sections[0]);
-    sections.slice(1).forEach(section => revealObserver.observe(section));
 
-  } else {
-    sections.forEach(section => section.classList.add('imx-is-visible'));
-  }
+    sections.slice(1).forEach(section => revealObserver.observe(section));
   });
   initModule(navigationModule);
 
@@ -624,6 +626,8 @@
   const gameBestNode = document.getElementById('imx-game-best');
   const gameAnnouncement = document.getElementById('imx-game-announcement');
   const gameOverlay = document.getElementById('imx-game-overlay');
+  const gamePositiveAudio = document.getElementById('imx-game-audio-positive');
+  const gameNegativeAudio = document.getElementById('imx-game-audio-negative');
   const gameOverlayTitle = document.getElementById('imx-game-overlay-title');
   const gameOverlayCopy = document.getElementById('imx-game-overlay-copy');
   const gameStartButton = document.getElementById('imx-game-start');
@@ -651,6 +655,36 @@
   const paddle = { x: 0, width: 82, height: 13, y: 0 };
   const gameKeys = new Set();
   listen(window, 'blur', () => gameKeys.clear());
+
+  function stopGameAudio() {
+    [gamePositiveAudio, gameNegativeAudio].forEach(audio => {
+      audio.pause();
+      audio.currentTime = 0;
+    });
+  }
+
+  function playGameAudio(tone) {
+    const audio = tone === 'positive' ? gamePositiveAudio : gameNegativeAudio;
+    if (!gameOverlay.isConnected || !gameOverlay.contains(audio) || !gameSection.contains(gameOverlay)) return;
+    stopGameAudio();
+    audio.currentTime = 0;
+    audio.play().catch(error => {
+      if (error.name !== 'AbortError') {
+        console.warn('Signal game audio could not be played.', error);
+      }
+    });
+  }
+
+  const gameOverlayLifecycleObserver = new MutationObserver(mutations => {
+    if (!gameOverlay.isConnected || mutations.some(mutation => mutation.target === gameOverlay
+      && mutation.type === 'attributes' && mutation.attributeName === 'hidden')) {
+      stopGameAudio();
+    }
+  });
+  observe(gameOverlayLifecycleObserver, gameOverlay, { attributes: true, attributeFilter: ['hidden'] });
+  observe(gameOverlayLifecycleObserver, gameSection, { childList: true, subtree: true });
+  observe(gameOverlayLifecycleObserver, gameSection.parentElement, { childList: true });
+  onDestroy(stopGameAudio);
 
   function animateGameFeedback(target, keyframes, duration) {
     gameFeedbackAnimations.get(target)?.cancel();
@@ -690,6 +724,7 @@
     gameCelebrationSpeech.textContent = message;
     void gameCelebration.offsetWidth;
     gameCelebration.classList.add('is-celebrating');
+    playGameAudio(tone);
     gameCelebrationTimer = schedule(() => {
       gameCelebration.classList.remove('is-celebrating');
       gameCelebrationTimer = undefined;
@@ -778,6 +813,7 @@
   });
 
   function endGame() {
+    stopGameAudio();
     gameRunning = false;
     if (gameFrame) cancelAnimationFrame(gameFrame);
     gameFrame = 0;
@@ -860,6 +896,7 @@
   }
 
   function startGame() {
+    stopGameAudio();
     clearScheduled(gameCelebrationTimer);
     gameCelebrationTimer = undefined;
     gameCelebration.classList.remove('is-celebrating');

@@ -1,0 +1,273 @@
+/* =========================================================
+   PIXELVERSE — PREMIUM MOTION LAYER
+   Loaded AFTER style.css and interactivity.css. It only adds
+   motion: no colors, type, spacing, or layout are changed.
+
+   Techniques
+   - Individual transform properties (translate / scale) are used for
+     entrances so they never fight the existing `transform`-based hovers.
+   - Entrances are CSS keyframes with an implicit "to" state, so every
+     element animates to whatever its own resting style is (e.g. locked
+     badges settle at their existing 0.55 opacity).
+   - Everything is gated behind prefers-reduced-motion: no-preference.
+   ========================================================= */
+
+:root {
+  --mx-ease: cubic-bezier(0.22, 1, 0.36, 1);      /* expo-out: fast start, long soft landing */
+  --mx-ease-io: cubic-bezier(0.65, 0, 0.35, 1);   /* symmetrical, for exits */
+  --mx-dur-fast: 450ms;
+  --mx-dur-base: 700ms;
+  --mx-dur-slow: 900ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* ---------------------------------------------------------
+     1. PAGE TRANSITIONS
+     --------------------------------------------------------- */
+  .view.active {
+    animation: mx-view-in 320ms var(--mx-ease) backwards;
+  }
+
+  @keyframes mx-view-in {
+    from { opacity: 0.6; translate: 0 10px; }
+  }
+
+  /* Top bar settles in once on load */
+  .topbar {
+    animation: mx-topbar-in 1000ms var(--mx-ease) backwards;
+  }
+
+  @keyframes mx-topbar-in {
+    from { opacity: 0; translate: 0 -18px; }
+  }
+
+  /* ---------------------------------------------------------
+     2. SCROLL REVEALS  (replayable, direction-aware, staggered)
+     Elements are tagged by js/motion.js. Hidden state only exists
+     once the script is running (.mx-on), so failed JS = visible page.
+     --------------------------------------------------------- */
+  .mx-on .mx:not(.mx-visible) { opacity: 0; }
+
+  .mx-on .mx.mx-visible {
+    animation-duration: var(--mx-dur-slow);
+    animation-timing-function: var(--mx-ease);
+    animation-fill-mode: backwards;
+    animation-delay: calc(var(--mx-d, 0ms) + var(--mx-bd, 0ms));
+  }
+
+  .mx-on .mx.mx-view-change.mx-visible {
+    --mx-from-opacity: 0.5;
+  }
+
+  /* Scrolling back UP: elements arrive from above instead of below */
+  .mx.mx-above { --mx-y: -22px; }
+
+  .mx-on .mx[data-mx="text"].mx-visible { animation-name: mx-text; }
+  .mx-on .mx[data-mx="rise"].mx-visible { animation-name: mx-rise; }
+  .mx-on .mx[data-mx="pane"].mx-visible { animation-name: mx-pane; }
+  .mx-on .mx[data-mx="fade"].mx-visible { animation-name: mx-fade; animation-duration: 1100ms; }
+
+  /* Headings & copy: lift + de-blur (short text, so blur is cheap) */
+  @keyframes mx-text {
+    from { opacity: var(--mx-from-opacity, 0); translate: 0 var(--mx-y, 26px); filter: blur(8px); }
+  }
+  /* Cards & groups: lift + gentle scale-up */
+  @keyframes mx-rise {
+    from { opacity: var(--mx-from-opacity, 0); translate: 0 var(--mx-y, 36px); scale: 0.96; }
+  }
+  /* Canvas / large interactive panes: lift only (never scaled) */
+  @keyframes mx-pane {
+    from { opacity: var(--mx-from-opacity, 0); translate: 0 var(--mx-y, 30px); }
+  }
+  @keyframes mx-fade {
+    from { opacity: var(--mx-from-opacity, 0); }
+  }
+
+  /* Existing section reveal (imx-reveal): same behaviour, richer curve.
+     The visible-state rule in interactivity.css still wins on specificity. */
+  .imx-content.imx-reveal-ready .imx-reveal {
+    transform: translate3d(0, 36px, 0);
+    transition:
+      opacity var(--mx-dur-slow) var(--mx-ease),
+      transform 1100ms var(--mx-ease);
+  }
+
+  /* XP bars fill in when their view appears */
+  .view.active .xp-bar-fill {
+    transform-origin: left center;
+    animation: mx-bar 1200ms var(--mx-ease) 800ms backwards;
+  }
+  @keyframes mx-bar { from { scale: 0 1; } }
+
+  .xp-bar-fill { transition: width 1100ms var(--mx-ease); }
+
+  /* ---------------------------------------------------------
+     3. SECTION-TO-SECTION CONNECTION
+     Hero + section-head parallax are driven by js/motion.js with
+     transforms only (no layout work). Topbar gains depth on scroll.
+     --------------------------------------------------------- */
+  .hero-content { will-change: transform, opacity; }
+  .imx-section-head { will-change: transform; }
+
+  .topbar { transition-property: background-color, color, border-color, box-shadow; }
+  .topbar.mx-scrolled { box-shadow: 0 14px 34px -22px rgb(0 0 0 / 0.65); }
+
+  /* ---------------------------------------------------------
+     4. PREMIUM HOVER INTERACTIONS
+     Longer, softer transitions; small distances; no bounce.
+     Declared with full property lists because style.css ends with
+     a global transition-property rule that would otherwise win.
+     --------------------------------------------------------- */
+
+  /* Buttons */
+  .btn {
+    transition:
+      background-color var(--theme-transition-duration, 140ms) var(--theme-transition-easing, ease),
+      color var(--theme-transition-duration, 140ms) var(--theme-transition-easing, ease),
+      border-color 400ms var(--mx-ease),
+      box-shadow 600ms var(--mx-ease),
+      transform 600ms var(--mx-ease),
+      scale 600ms var(--mx-ease);
+  }
+
+  .btn:active {
+    transform: none;
+    scale: 0.975;
+    transition-duration: 140ms, 140ms, 200ms, 200ms, 180ms, 180ms;
+  }
+
+  /* Light sweep across primary buttons */
+  .btn.btn-primary {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .btn.btn-primary::after {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.38) 50%, transparent 70%);
+    content: "";
+    pointer-events: none;
+    translate: -130% 0;
+    transition: translate 900ms var(--mx-ease);
+  }
+
+  /* Nav links: underline draws in from the left, exits to the right */
+  .imx-topbar .nav-link {
+    position: relative;
+    transition:
+      color 400ms var(--mx-ease),
+      background-color 400ms var(--mx-ease),
+      border-color 400ms var(--mx-ease),
+      transform 500ms var(--mx-ease);
+  }
+  .imx-topbar .nav-link::after {
+    position: absolute;
+    right: 24%;
+    bottom: 4px;
+    left: 24%;
+    height: 1px;
+    background: currentColor;
+    content: "";
+    pointer-events: none;
+    scale: 0 1;
+    transform-origin: right center;
+    transition: scale 600ms var(--mx-ease);
+  }
+  .imx-topbar .nav-link.is-active::after { display: none; }
+
+  /* Brand + XP pill */
+  .brand-icon { transition: scale 600ms var(--mx-ease), rotate 600ms var(--mx-ease); }
+  .xp-pill { transition: color 400ms var(--mx-ease), scale 600ms var(--mx-ease); }
+
+  /* Cards */
+  .zone-card,
+  .lesson-card,
+  .imx-card,
+  .imx-tool-card,
+  .intro-card,
+  .badge-card,
+  .profile-card {
+    transition:
+      transform 700ms var(--mx-ease),
+      background-color 400ms var(--mx-ease),
+      color 400ms var(--mx-ease),
+      border-color 450ms var(--mx-ease),
+      box-shadow 700ms var(--mx-ease);
+  }
+
+  .zone-card-icon,
+  .lesson-card-icon,
+  .badge-card-icon { transition: transform 700ms var(--mx-ease); }
+
+  .imx-tab {
+    transition:
+      color 400ms var(--mx-ease),
+      background-color 400ms var(--mx-ease),
+      border-color 400ms var(--mx-ease),
+      transform 500ms var(--mx-ease);
+  }
+}
+
+/* Hover-only effects: fine pointers, so touch devices never get "stuck" states */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+
+  .btn:hover {
+    transform: translateY(-3px);
+    scale: 1.025;
+  }
+  .btn.btn-primary:hover::after { translate: 130% 0; }
+
+  .btn-back:hover {
+    transform: translateX(-5px);
+    scale: 1;
+  }
+  .btn-danger:hover { scale: 1.015; }
+
+  .imx-topbar .nav-link:not(.is-active):hover { transform: translateY(-1px); }
+  .imx-topbar .nav-link:not(.is-active):hover::after {
+    scale: 1 1;
+    transform-origin: left center;
+  }
+
+  .brand:hover .brand-icon { scale: 1.12; rotate: -4deg; }
+  .xp-pill:hover { scale: 1.05; }
+
+  .zone-card:hover,
+  .imx-card:hover,
+  .imx-tool-card:hover,
+  .intro-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--card-accent, var(--accent));
+    box-shadow: var(--card-shadow-hover, var(--card-shadow));
+  }
+
+  .lesson-card:hover { transform: translateX(8px); }
+
+  .badge-card.is-unlocked:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-shadow-hover, var(--card-shadow));
+  }
+
+  .zone-card:hover .zone-card-icon,
+  .lesson-card:hover .lesson-card-icon,
+  .badge-card.is-unlocked:hover .badge-card-icon { transform: translateY(-2px) scale(1.08); }
+
+  .imx-tab:not([aria-selected="true"]):hover { transform: translateY(-2px); }
+}
+
+/* ---------------------------------------------------------
+   Reduced motion: no hidden states, no page choreography.
+   (js/motion.js also never tags or delays anything.)
+   --------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .view.active,
+  .view.active .xp-bar-fill,
+  .topbar { animation: none; }
+
+  .mx { opacity: 1 !important; animation: none !important; }
+  .btn.btn-primary::after,
+  .imx-topbar .nav-link::after { display: none; }
+}

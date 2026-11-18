@@ -47,9 +47,9 @@
   margin-left: 0;
 }
 .imx-topbar .xp-pill {
-  gap: .2rem;
-  padding: .2rem .35rem;
-  font-size: .62rem;
+  gap: .25rem;
+  padding: .25rem .4rem;
+  font-size: .7rem;
 }
 .imx-topbar .xp-bolt { width: 12px; height: 12px; }
 .imx-topbar .imx-nav-host {
@@ -128,14 +128,41 @@
 /* Hide sections only after the enhancement script is fully initialized, so failed scripts leave content visible. */
 .imx-content.imx-reveal-ready .imx-reveal {
   opacity: 0;
-  transform: translate3d(0, 14px, 0);
-  transition: opacity 380ms ease-out, transform 380ms ease-out;
+  filter: blur(5px);
+  transform: translate3d(0, 18px, 0) scale(.99);
+  transition:
+    opacity 680ms cubic-bezier(.22, 1, .36, 1),
+    filter 680ms cubic-bezier(.22, 1, .36, 1),
+    transform 680ms cubic-bezier(.22, 1, .36, 1);
 }
 
 .imx-content.imx-reveal-ready .imx-reveal.imx-is-visible {
   opacity: 1;
+  filter: blur(0);
   transform: none;
 }
+
+.imx-content.imx-reveal-ready .imx-reveal .imx-section-head > *,
+.imx-content.imx-reveal-ready .imx-reveal .imx-lab-grid > *,
+.imx-content.imx-reveal-ready .imx-reveal .imx-tools-grid > * {
+  opacity: 0;
+  translate: 0 12px;
+  transition:
+    opacity 560ms cubic-bezier(.22, 1, .36, 1),
+    translate 560ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.imx-content.imx-reveal-ready .imx-reveal.imx-is-visible .imx-section-head > *,
+.imx-content.imx-reveal-ready .imx-reveal.imx-is-visible .imx-lab-grid > *,
+.imx-content.imx-reveal-ready .imx-reveal.imx-is-visible .imx-tools-grid > * {
+  opacity: 1;
+  translate: none;
+}
+
+.imx-content.imx-reveal-ready .imx-reveal.imx-is-visible .imx-section-head > :nth-child(2) { transition-delay: 70ms; }
+.imx-content.imx-reveal-ready .imx-reveal.imx-is-visible .imx-section-head > :nth-child(3) { transition-delay: 140ms; }
+.imx-content.imx-reveal-ready .imx-reveal.imx-is-visible .imx-lab-grid > :nth-child(2),
+.imx-content.imx-reveal-ready .imx-reveal.imx-is-visible .imx-tools-grid > :nth-child(2) { transition-delay: 100ms; }
 
 .imx-section-head {
   max-width: 760px;
@@ -151,6 +178,10 @@
 }
 
 .imx-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
   margin: 0 0 .6rem;
   font: 700 clamp(1.45rem, 4vw, 2.45rem)/1.2 'Pixelify Sans', var(--font-mono);
   letter-spacing: .025em;
@@ -158,6 +189,7 @@
     1px 1px 0 var(--type-pixel-highlight),
     2px 2px 0 var(--type-edge);
 }
+.heading-icon { width: 22px; height: 22px; }
 
 .imx-intro {
   margin: 0;
@@ -284,6 +316,13 @@
   text-shadow: 0 1px 0 var(--type-pixel-highlight);
 }
 
+.imx-card h3 {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.card-icon { width: 18px; height: 18px; }
+
 .imx-card > p {
   margin: 0 0 1rem;
   color: var(--text-muted);
@@ -303,7 +342,9 @@
   background: var(--imx-accent);
   color: #0a110c;
   font: 700 .88rem/1.2 var(--font-mono);
-  transition: transform 160ms ease, filter 160ms ease;
+  transition:
+    transform 360ms cubic-bezier(.22, 1, .36, 1),
+    filter 360ms cubic-bezier(.22, 1, .36, 1);
 }
 
 .imx-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
@@ -441,9 +482,22 @@
   background: transparent;
   color: var(--text);
   text-align: left;
+  transition:
+    background-color 320ms cubic-bezier(.22, 1, .36, 1),
+    color 320ms cubic-bezier(.22, 1, .36, 1);
 }
 
-.imx-tool-name { grid-column: 1; margin: 0; }
+.imx-tool-button:hover,
+.imx-tool-button:focus-visible { background-color: color-mix(in srgb, var(--imx-accent) 8%, transparent); }
+
+.imx-tool-name {
+  display: flex;
+  grid-column: 1;
+  align-items: center;
+  gap: .55rem;
+  margin: 0;
+}
+.tool-icon { width: 20px; height: 20px; }
 .imx-tool-purpose { grid-column: 1; color: var(--text-muted); font-size: .88rem; line-height: 1.45; }
 .imx-tool-indicator { grid-column: 2; grid-row: 1 / span 2; color: var(--imx-accent); font: 400 1.6rem/1 var(--font-mono); }
 .imx-tool-button[aria-expanded="true"] .imx-tool-indicator { transform: rotate(45deg); }
@@ -478,7 +532,15 @@
   font: 500 .8rem/1.3 var(--font-mono);
   text-align: center;
   white-space: nowrap;
+  transition:
+    color 320ms cubic-bezier(.22, 1, .36, 1),
+    background-color 320ms cubic-bezier(.22, 1, .36, 1),
+    border-color 320ms cubic-bezier(.22, 1, .36, 1),
+    transform 320ms cubic-bezier(.22, 1, .36, 1);
 }
+
+.imx-tab:hover:not([aria-selected="true"]),
+.imx-tab:focus-visible:not([aria-selected="true"]) { color: var(--text); transform: translateY(-1px); }
 
 .imx-tab[aria-selected="true"] {
   border-color: var(--interactive-active-border);
@@ -550,6 +612,8 @@
 
 .imx-stage-footer .imx-readout { margin: 0 !important; }
 .imx-game-stats { display: flex; justify-content: center; gap: clamp(1rem, 8vw, 4rem); margin: 0 0 .8rem; color: var(--text-muted); font: 500 .9rem/1.5 var(--font-mono); }
+.imx-game-stats span { display: inline-flex; align-items: center; gap: .35rem; }
+.game-stat-icon { width: 16px; height: 16px; }
 .imx-game-stats strong { color: var(--text); }
 .imx-game-shell { position: relative; overflow: hidden; border: 1px solid var(--imx-border); border-radius: var(--card-radius); }
 .imx-game-canvas { height: clamp(280px, 48vw, 390px); border: 0; border-radius: 0; cursor: crosshair; }
@@ -789,6 +853,17 @@
 
 @media (prefers-reduced-motion: reduce) {
   .imx-content.imx-reveal-ready .imx-reveal { opacity: 1; transform: none; transition: none; }
+  .imx-button:hover,
+  .imx-button:active,
+  .imx-tab:hover:not([aria-selected="true"]),
+  .imx-tab:focus-visible:not([aria-selected="true"]) { transform: none; }
+  .imx-content.imx-reveal-ready .imx-reveal .imx-section-head > *,
+  .imx-content.imx-reveal-ready .imx-reveal .imx-lab-grid > *,
+  .imx-content.imx-reveal-ready .imx-reveal .imx-tools-grid > * {
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
   .imx-game-overlay,
   .imx-game-overlay-card { animation: none; }
   .imx-game-celebration.is-celebrating { visibility: visible; animation: none; }
@@ -814,11 +889,8 @@
   .imx-tilt-card .imx-tilt-panel { transform: none; }
 }
 
-.nav-link.is-active,
-.nav-link[aria-current="page"] {
-  border-color: var(--interactive-active-border);
-  background: var(--interactive-active-background);
-  color: var(--interactive-active-text);
+.imx-tool-button[aria-expanded="true"] .tool-icon rect {
+  fill: var(--interactive-active-text);
 }
 
 .imx-tab[aria-selected="true"],
