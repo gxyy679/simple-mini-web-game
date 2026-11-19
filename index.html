@@ -21,6 +21,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="image" href="assets/image/Basketball Player Roster Cutout.png">
+<link rel="preload" as="image" href="assets/image/spiderman-removebg-preview.png">
+<link rel="preload" as="image" href="assets/image/black-spiderman.png">
 <!-- Keep only weights used by the page and swap immediately to the existing system fallbacks. -->
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;700&family=Cormorant+Garamond:wght@300;400&family=JetBrains+Mono:wght@400;500;700&family=Pixelify+Sans:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
@@ -55,6 +57,14 @@
 
 <!-- Floating pixel particles layer -->
 <div id="particle-field" aria-hidden="true"></div>
+
+<!-- Decorative pixel-art character, kept to the outer edge of wide layouts. -->
+<div class="web-rider" aria-hidden="true">
+  <img class="web-rider__art web-rider__line web-rider__art--light" src="assets/image/spiderman-removebg-preview.png" alt="">
+  <img class="web-rider__art web-rider__line web-rider__art--dark" src="assets/image/black-spiderman.png" alt="">
+  <img class="web-rider__art web-rider__figure web-rider__art--light" src="assets/image/spiderman-removebg-preview.png" alt="">
+  <img class="web-rider__art web-rider__figure web-rider__art--dark" src="assets/image/black-spiderman.png" alt="">
+</div>
 
 <!-- ============ NAV ============ -->
 <header class="topbar imx-topbar">
@@ -482,5 +492,6 @@
 <script src="js/script.js"></script>
 <script src="js/interactivity.js"></script>
 <script src="js/motion.js?v=3"></script>
+<script src="js/web-rider.js"></script>
 </body>
 </html>

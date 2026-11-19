@@ -2259,6 +2259,85 @@ main {
   transition: fill var(--theme-transition-duration) var(--theme-transition-easing);
 }
 
+/* Keep the hanging character in the page margin so it never covers content. */
+.web-rider {
+  display: none;
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  right: max(12px, calc((100vw - 1200px) / 2 + 8px));
+  width: clamp(88px, 8vw, 112px);
+  transform-origin: 50% 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.web-rider__art {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  transition: opacity 220ms ease;
+}
+
+.web-rider__art--dark {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+:root[data-theme="dark"] .web-rider__art--light {
+  opacity: 0;
+}
+
+:root[data-theme="dark"] .web-rider__art--dark {
+  opacity: 1;
+}
+
+.web-rider__line {
+  clip-path: inset(0 0 59% 0);
+  transform: scaleY(var(--web-scale, 1));
+  transform-origin: top center;
+  will-change: transform;
+}
+
+.web-rider__figure {
+  position: absolute;
+  top: var(--web-drop, 0px);
+  right: 0;
+  left: 0;
+  clip-path: inset(39.5% 0 33% 0);
+  transform-origin: 50% 39.5%;
+}
+
+@media (min-width: 1100px) {
+  .web-rider { display: block; }
+}
+
+@media (prefers-reduced-motion: no-preference) and (min-width: 1100px) {
+  .web-rider {
+    animation: web-rider-sway 5.2s ease-in-out infinite;
+  }
+
+  .web-rider__figure {
+    animation: web-rider-elastic 2.8s ease-in-out infinite;
+    will-change: transform;
+  }
+}
+
+@keyframes web-rider-sway {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50% { transform: rotate(1.5deg); }
+}
+
+@keyframes web-rider-elastic {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  22% { transform: translateY(2px) scaleY(1.055); }
+  44% { transform: translateY(-1px) scaleY(0.975); }
+  68% { transform: translateY(1px) scaleY(1.025); }
+  84% { transform: translateY(0) scaleY(0.99); }
+}
+
 .xp-pill:hover,
 .xp-pill:active {
   background: transparent;
